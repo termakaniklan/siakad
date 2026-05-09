@@ -503,6 +503,65 @@ async function seedStudents(
   return out;
 }
 
+/**
+ * Create one parent (orang tua) account per student plus a `ParentLink`
+ * relation so the parent portal (`/orangtua`) can pivot onto child data.
+ *
+ * Username convention: `ortu001`, `ortu002`, … aligned with `siswa001`, etc.
+ * Password: `OrangTua!2026`.
+ *
+ * Relationship alternates between `ayah` / `ibu` (and `wali` for every 7th)
+ * to mimic real-world variety. Idempotent thanks to upsert-by-email and
+ * the unique `[parentUserId, childUserId]` constraint.
+ */
+async function seedParents(
+  roles: Record<RoleCode, string>,
+  students: Array<{ id: string; fullName: string }>,
+): Promise<Array<{ id: string; fullName: string; childId: string }>> {
+  const password = await argon2.hash('OrangTua!2026', { type: argon2.argon2id });
+  const out: Array<{ id: string; fullName: string; childId: string }> = [];
+  for (let i = 0; i < students.length; i++) {
+    const stu = students[i]!;
+    const idx = i + 1;
+    // Derive parent name from student last name to feel like a family unit.
+    const studentLast = stu.fullName.split(' ').slice(-1)[0] ?? 'Saputra';
+    const seed = idx + 200;
+    const isFather = idx % 3 !== 0; // 2/3 ayah, 1/3 ibu (rough mix)
+    const isGuardian = idx % 7 === 0; // every 7th is wali
+    const relationship = isGuardian ? 'wali' : isFather ? 'ayah' : 'ibu';
+    const firstName = isFather
+      ? FIRST_NAMES_M[seed % FIRST_NAMES_M.length]!
+      : FIRST_NAMES_F[seed % FIRST_NAMES_F.length]!;
+    const fullName = `${firstName} ${studentLast}`;
+
+    const username = `ortu${String(idx).padStart(3, '0')}`;
+    const email = `${username}@wali.sekolah-contoh.sch.id`;
+    const phone = `0812${String(3000000 + idx * 17).padStart(7, '0')}`;
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { isActive: true, fullName, phone },
+      create: {
+        email,
+        username,
+        passwordHash: password,
+        fullName,
+        phone,
+        isActive: true,
+        roles: { connect: [{ id: roles.orang_tua! }] },
+      },
+    });
+
+    await prisma.parentLink.upsert({
+      where: { parentUserId_childUserId: { parentUserId: user.id, childUserId: stu.id } },
+      update: { relationship },
+      create: { parentUserId: user.id, childUserId: stu.id, relationship },
+    });
+
+    out.push({ id: user.id, fullName, childId: stu.id });
+  }
+  return out;
+}
+
 async function seedSchedules(
   classes: Array<{ id: string; name: string }>,
   subjects: Map<string, string>,
@@ -1153,6 +1212,8 @@ async function main(): Promise<void> {
   const classes = await seedClasses(year.id, teachers);
   console.log('· Demo seed: 120 students');
   const students = await seedStudents(roles, classes);
+  console.log(`· Demo seed: ${students.length} parent accounts (orang tua) + parent links`);
+  await seedParents(roles, students);
   console.log('· Demo seed: schedules');
   await seedSchedules(classes, subjects, teachers);
   console.log('· Demo seed: 14 days × 120 students attendance');

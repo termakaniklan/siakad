@@ -68,6 +68,15 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 | :----------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------: |
 | ![Absensi Admin](https://app.devin.ai/attachments/e8f54c0e-fada-40e5-863f-f930be036656/06-absensi-admin.png) | ![Absensi Siswa](https://app.devin.ai/attachments/69984d77-9839-4abc-82ee-13905754a9eb/07-absensi-siswa.png) |
 
+### Portal Orang Tua / Wali
+
+> Login sebagai `ortu001 / OrangTua!2026` (akun demo dibuat otomatis oleh
+> `npm run db:seed-demo`, satu akun orang tua per siswa, total 120 akun).
+
+|                                  Dashboard — anak, kehadiran 14 hari, ujian mendatang                                   |                                                    Ujian & Pengumuman                                                     |
+| :---------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------: |
+| ![Orang Tua Dashboard](https://app.devin.ai/attachments/ac5a76a4-f5d2-4490-b7a8-84f9ff96c34f/08-orangtua-dashboard.png) | ![Orang Tua Pengumuman](https://app.devin.ai/attachments/64a9316f-a533-4d7f-a3df-e313e3f7b01b/09-orangtua-pengumuman.png) |
+
 ---
 
 ## 1. Pendahuluan & Tujuan
@@ -387,6 +396,7 @@ mengisi puluhan dummy data agar UI terlihat hidup untuk demo / dokumentasi:
 | **Guru**           | 18     | 6 di antaranya menjadi wali kelas                           |
 | **Kelas**          | 6      | X IPA-1, X IPS-1, XI IPA-1, XI IPS-1, XII IPA-1, XII IPS-1  |
 | **Siswa**          | 120    | 20 / kelas, NIS `2025xxxx`                                  |
+| **Orang Tua**      | 120    | 1 akun per siswa (`ortu001` … `ortu120`), `ParentLink` siap |
 | **Jadwal**         | 12     | 2 jadwal per kelas (Senin & Rabu)                           |
 | **Absensi**        | ~1.680 | 14 hari × 120 siswa, status pseudo-random deterministik     |
 | **Ujian CBT**      | 5      | masing-masing 10 soal pilihan ganda                         |
@@ -394,11 +404,12 @@ mengisi puluhan dummy data agar UI terlihat hidup untuk demo / dokumentasi:
 
 Akun demo:
 
-| Role                  | Username     | Password        |
-| --------------------- | ------------ | --------------- |
-| Super Admin           | `superadmin` | `ChangeMe!2026` |
-| Siswa (mis. siswa001) | `siswa001`   | `Siswa!2026`    |
-| Guru (mis. guru01)    | `guru01`     | `Guru!2026`     |
+| Role                     | Username     | Password        |
+| ------------------------ | ------------ | --------------- |
+| Super Admin              | `superadmin` | `ChangeMe!2026` |
+| Siswa (mis. siswa001)    | `siswa001`   | `Siswa!2026`    |
+| Guru (mis. guru01)       | `guru01`     | `Guru!2026`     |
+| Orang Tua (mis. ortu001) | `ortu001`    | `OrangTua!2026` |
 
 Untuk gambar AI di galeri / hero / login background, jalankan:
 
