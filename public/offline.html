@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — SIAKAD</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #020617; color: #e2e8f0; }
+      }
+      .card { max-width: 28rem; padding: 1.5rem; text-align: center; }
+      h1 { margin: 0 0 0.5rem 0; }
+      p { margin: 0.5rem 0; }
+      a { color: #1a52e6; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Anda sedang offline</h1>
+      <p>Tidak ada koneksi internet saat ini. Beberapa fitur SIAKAD masih dapat diakses dari cache.</p>
+      <p><a href="/">Coba muat ulang beranda</a></p>
+    </main>
+  </body>
+</html>

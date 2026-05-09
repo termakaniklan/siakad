@@ -1,0 +1,739 @@
+// SIAKAD Prisma schema — modular monolith with multi-DB friendly types.
+//
+// Provider:
+//   - Default: MariaDB (`mysql`).
+//   - To migrate: change `datasource.provider` to `postgresql`, `sqlserver`,
+//     or use the dedicated Oracle adapter (preview, see README §13).
+//
+// Conventions:
+//   - UUID primary keys (string @id @default(uuid())) for portability.
+//   - Soft-delete via `deletedAt` instead of vendor-specific row-level features.
+//   - Timestamps: createdAt / updatedAt always present; updatedAt via @updatedAt.
+//   - All FK relations explicit and indexed; no implicit cascades on delete by default.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// =====================================================================
+// Identity, RBAC, Sessions, Audit
+// =====================================================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String?
+  fullName     String
+  phone        String?
+  isActive     Boolean  @default(true)
+  mfaTotpSecret String?
+  mfaEnabled   Boolean  @default(false)
+
+  // Profile
+  nis          String?  @unique // siswa
+  nip          String?  @unique // guru / staff
+  avatarUrl    String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  roles                Role[]            @relation("UserRoles")
+  sessions             UserSession[]
+  loginAttempts        LoginAttempt[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]        @relation("AuditActor")
+  examAttempts         ExamAttempt[]
+  attendanceMarks      AttendanceMark[]
+  studentEnrollments   ClassEnrollment[] @relation("EnrollmentStudent")
+  homeroomClasses      Class[]           @relation("HomeroomTeacher")
+  parentLinks          ParentLink[]      @relation("ParentSide")
+  childLinks           ParentLink[]      @relation("ChildSide")
+  schedulesTaught      ClassSchedule[]   @relation("ScheduleTeacher")
+  materialsUploaded    Material[]
+  violationsRecorded   Violation[]       @relation("ViolationRecorder")
+  violationsReceived   Violation[]       @relation("ViolationStudent")
+
+  @@index([deletedAt])
+  @@index([fullName])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]       @relation("UserRoles")
+
+  @@index([deletedAt])
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  roles       Role[]   @relation("RolePermissions")
+
+  @@index([deletedAt])
+}
+
+model UserSession {
+  id         String    @id
+  userId     String
+  ip         String?
+  userAgent  String?
+  rememberMe Boolean   @default(false)
+  revokedAt  DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  id         String   @id @default(uuid())
+  userId     String?
+  ip         String
+  userAgent  String?
+  success    Boolean
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([ip, createdAt])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String?
+  action       String
+  entityType   String?
+  entityId     String?
+  ip           String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  actor        User?    @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+}
+
+// =====================================================================
+// Settings & Menu (admin-managed)
+// =====================================================================
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  isSecret  Boolean  @default(false) // values redacted from logs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+model MenuItem {
+  id           String   @id @default(uuid())
+  parentId     String?
+  label        String
+  url          String
+  icon         String?
+  permission   String?  // permission code required to render
+  order        Int      @default(0)
+  visibility   String   @default("public") // public | authenticated | role:<code>
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  parent       MenuItem?  @relation("MenuItemParent", fields: [parentId], references: [id])
+  children     MenuItem[] @relation("MenuItemParent")
+
+  @@index([parentId, order])
+  @@index([deletedAt])
+}
+
+// =====================================================================
+// CMS — Pages, News, Gallery, Announcements
+// =====================================================================
+
+model Page {
+  id           String   @id @default(uuid())
+  numericId    Int      @unique @default(autoincrement())
+  slug         String   @unique // /{numericId}-judul.html
+  title        String
+  content      String   @db.Text
+  excerpt      String?  @db.Text
+  isPublished  Boolean  @default(false)
+  publishedAt  DateTime?
+  seoTitle     String?
+  seoDescription String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@index([isPublished, publishedAt])
+  @@index([deletedAt])
+}
+
+model NewsPost {
+  id            String   @id @default(uuid())
+  numericId     Int      @unique @default(autoincrement())
+  slug          String   @unique
+  title         String
+  excerpt       String?  @db.Text
+  content       String   @db.Text
+  coverImageUrl String?
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+  authorId      String?
+  seoTitle      String?
+  seoDescription String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([isPublished, publishedAt])
+  @@index([deletedAt])
+}
+
+model GalleryCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  items     GalleryItem[]
+}
+
+model GalleryItem {
+  id           String   @id @default(uuid())
+  categoryId   String
+  title        String
+  type         String   // 'image' | 'video_youtube'
+  imageUrl     String?
+  youtubeUrl   String?
+  thumbnailUrl String?
+  order        Int      @default(0)
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  category     GalleryCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId, order])
+  @@index([deletedAt])
+}
+
+model Announcement {
+  id         String   @id @default(uuid())
+  title      String
+  body       String   @db.Text
+  audience   String   @default("all") // all | role:<code> | class:<id>
+  publishedAt DateTime?
+  expiresAt  DateTime?
+  isPinned   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@index([publishedAt])
+  @@index([audience])
+}
+
+// =====================================================================
+// Wilayah Indonesia (Province → Regency → District → Village)
+// =====================================================================
+
+model Province {
+  id        String    @id // BPS code, kept as string for portability
+  name      String
+  regencies Regency[]
+}
+
+model Regency {
+  id         String     @id
+  provinceId String
+  name       String
+  province   Province   @relation(fields: [provinceId], references: [id])
+  districts  District[]
+
+  @@index([provinceId])
+}
+
+model District {
+  id         String    @id
+  regencyId  String
+  name       String
+  regency    Regency   @relation(fields: [regencyId], references: [id])
+  villages   Village[]
+
+  @@index([regencyId])
+}
+
+model Village {
+  id        String   @id
+  districtId String
+  name      String
+  postalCode String?
+  district  District @relation(fields: [districtId], references: [id])
+
+  @@index([districtId])
+}
+
+// =====================================================================
+// Academic
+// =====================================================================
+
+model SchoolProfile {
+  id          String   @id @default(uuid())
+  name        String
+  npsn        String?  @unique
+  level       String   // SD / SMP / SMA / SMK
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  logoUrl     String?
+  visionText  String?  @db.Text
+  missionText String?  @db.Text
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model AcademicYear {
+  id        String   @id @default(uuid())
+  code      String   @unique // e.g. "2025/2026-Ganjil"
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+
+  classes   Class[]
+  exams     Exam[]
+  ppdb      PpdbApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model Class {
+  id              String   @id @default(uuid())
+  academicYearId  String
+  name            String
+  level           String   // X, XI, XII, etc.
+  homeroomTeacherId String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  academicYear    AcademicYear     @relation(fields: [academicYearId], references: [id])
+  homeroomTeacher User?            @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
+  enrollments     ClassEnrollment[]
+  schedules       ClassSchedule[]
+  exams           ExamClassMapping[]
+
+  @@unique([academicYearId, name])
+  @@index([deletedAt])
+}
+
+model ClassEnrollment {
+  id        String   @id @default(uuid())
+  classId   String
+  studentId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  class     Class @relation(fields: [classId], references: [id])
+  student   User  @relation("EnrollmentStudent", fields: [studentId], references: [id])
+
+  @@unique([classId, studentId])
+  @@index([studentId])
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  kkm       Int?     // minimum competency
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  schedules ClassSchedule[]
+  exams     Exam[]
+  materials Material[]
+  grades    Grade[]
+}
+
+model ClassSchedule {
+  id        String   @id @default(uuid())
+  classId   String
+  subjectId String
+  teacherId String
+  dayOfWeek Int      // 1..7 (ISO)
+  startTime String   // HH:mm
+  endTime   String   // HH:mm
+  room      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  class     Class   @relation(fields: [classId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  teacher   User    @relation("ScheduleTeacher", fields: [teacherId], references: [id])
+
+  @@unique([classId, dayOfWeek, startTime])
+  @@index([teacherId])
+}
+
+model AttendanceMark {
+  id          String   @id @default(uuid())
+  studentId   String
+  classScheduleId String?
+  date        DateTime
+  status      String   // present | absent | sick | permission | late
+  notes       String?
+  markedBy    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student     User    @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, date])
+  @@index([date])
+}
+
+model Violation {
+  id          String   @id @default(uuid())
+  studentId   String
+  recordedBy  String
+  category    String   // behavior | academic | attendance | other
+  description String   @db.Text
+  points      Int      @default(0)
+  occurredAt  DateTime @default(now())
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  student     User @relation("ViolationStudent", fields: [studentId], references: [id])
+  recorder    User @relation("ViolationRecorder", fields: [recordedBy], references: [id])
+
+  @@index([studentId, occurredAt])
+}
+
+model Material {
+  id           String   @id @default(uuid())
+  subjectId    String
+  uploadedBy   String
+  title        String
+  description  String?  @db.Text
+  fileUrl      String?
+  externalUrl  String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  subject      Subject @relation(fields: [subjectId], references: [id])
+  uploader     User    @relation(fields: [uploadedBy], references: [id])
+
+  @@index([subjectId])
+}
+
+model Grade {
+  id              String   @id @default(uuid())
+  studentId       String
+  subjectId       String
+  academicYearId  String
+  type            String   // assignment | midterm | final | quiz
+  score           Float
+  weight          Float    @default(1.0)
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  subject         Subject @relation(fields: [subjectId], references: [id])
+
+  @@index([studentId, academicYearId])
+  @@index([subjectId, academicYearId])
+}
+
+model ParentLink {
+  id          String   @id @default(uuid())
+  parentUserId String
+  childUserId  String
+  relationship String   // ayah | ibu | wali
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  parent      User @relation("ParentSide", fields: [parentUserId], references: [id])
+  child       User @relation("ChildSide", fields: [childUserId], references: [id])
+
+  @@unique([parentUserId, childUserId])
+  @@index([childUserId])
+}
+
+// =====================================================================
+// Exams / CBT
+// =====================================================================
+
+model Exam {
+  id              String   @id @default(uuid())
+  academicYearId  String
+  subjectId       String
+  title           String
+  description     String?  @db.Text
+  startAt         DateTime
+  endAt           DateTime
+  durationMinutes Int
+  shuffleQuestions Boolean @default(true)
+  shuffleAnswers   Boolean @default(true)
+  isPublished     Boolean  @default(false)
+  // CBT proctoring
+  fullscreenRequired Boolean @default(true)
+  preventTabSwitch   Boolean @default(true)
+  maxTabSwitches     Int     @default(2)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
+  subject         Subject      @relation(fields: [subjectId], references: [id])
+  questions       Question[]
+  classMappings   ExamClassMapping[]
+  attempts        ExamAttempt[]
+
+  @@index([startAt, endAt])
+  @@index([deletedAt])
+}
+
+model ExamClassMapping {
+  id      String @id @default(uuid())
+  examId  String
+  classId String
+
+  exam    Exam  @relation(fields: [examId], references: [id])
+  class   Class @relation(fields: [classId], references: [id])
+
+  @@unique([examId, classId])
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  examId    String
+  type      String   // mcq | essay | image_mcq
+  prompt    String   @db.Text
+  imageUrl  String?
+  points    Int      @default(1)
+  order     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  exam      Exam            @relation(fields: [examId], references: [id])
+  choices   QuestionChoice[]
+
+  @@index([examId, order])
+}
+
+model QuestionChoice {
+  id         String   @id @default(uuid())
+  questionId String
+  label      String   // A/B/C/D or freeform
+  text       String   @db.Text
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+
+  question   Question @relation(fields: [questionId], references: [id])
+
+  @@index([questionId, order])
+}
+
+model ExamAttempt {
+  id            String   @id @default(uuid())
+  examId        String
+  studentId     String
+  startedAt     DateTime @default(now())
+  submittedAt   DateTime?
+  status        String   @default("in_progress") // in_progress | submitted | flagged | auto_submit
+  score         Float?
+  // Anti-cheat counters
+  tabSwitchCount Int     @default(0)
+  fullscreenExitCount Int @default(0)
+  suspiciousFlags Json?
+
+  exam          Exam @relation(fields: [examId], references: [id])
+  student       User @relation(fields: [studentId], references: [id])
+  answers       ExamAnswer[]
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+}
+
+model ExamAnswer {
+  id         String   @id @default(uuid())
+  attemptId  String
+  questionId String
+  // For MCQ — choice id; for essay — text
+  choiceId   String?
+  textAnswer String? @db.Text
+  isCorrect  Boolean?
+  scoreAwarded Float?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id])
+
+  @@unique([attemptId, questionId])
+}
+
+// =====================================================================
+// PPDB
+// =====================================================================
+
+model PpdbApplication {
+  id              String   @id @default(uuid())
+  numericId       Int      @unique @default(autoincrement())
+  academicYearId  String
+  status          String   @default("draft") // draft | submitted | reviewed | accepted | rejected
+  // Identity
+  fullName        String
+  birthPlace      String
+  birthDate       DateTime
+  nisn            String?
+  // Address
+  studentAddress  String   @db.Text
+  fatherName      String
+  motherName      String
+  guardianName    String?
+  parentAddress   String   @db.Text
+  provinceId      String?
+  regencyId       String?
+  districtId      String?
+  villageId       String?
+  postalCode      String?
+  // Contact
+  contactEmail    String?
+  contactPhone    String?
+  // Submission
+  submittedAt     DateTime?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewerNotes   String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
+  documents       PpdbDocument[]
+
+  @@index([academicYearId, status])
+  @@index([deletedAt])
+}
+
+model PpdbDocument {
+  id              String   @id @default(uuid())
+  applicationId   String
+  kind            String   // birth_certificate | family_card | report_card | photo | other
+  fileUrl         String
+  mimeType        String
+  sizeBytes       Int
+
+  createdAt       DateTime @default(now())
+
+  application     PpdbApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId])
+}
+
+// =====================================================================
+// Notifications
+// =====================================================================
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String
+  channel    String   // inapp | email | wa | push
+  title      String
+  body       String   @db.Text
+  data       Json?
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  user       User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+// =====================================================================
+// Payment (Midtrans + QRIS)
+// =====================================================================
+
+model PaymentTransaction {
+  id             String   @id @default(uuid())
+  reference      String   @unique
+  userId         String?
+  applicationId  String?
+  amount         Int
+  currency       String   @default("IDR")
+  provider       String   // midtrans | qris | manual
+  status         String   @default("pending") // pending | success | failed | expired
+  rawProviderRef String?
+  metadata       Json?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status, createdAt])
+}
