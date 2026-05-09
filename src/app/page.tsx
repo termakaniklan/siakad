@@ -237,11 +237,7 @@ export default async function HomePage() {
             <Card key={p!.id} className="overflow-hidden">
               {p!.coverImageUrl && (
                 /* eslint-disable-next-line @next/next/no-img-element -- editorial */
-                <img
-                  src={p!.coverImageUrl}
-                  alt={p!.title}
-                  className="h-40 w-full object-cover"
-                />
+                <img src={p!.coverImageUrl} alt={p!.title} className="h-40 w-full object-cover" />
               )}
               <CardHeader>
                 <CardTitle className="line-clamp-2 text-base">{p!.title}</CardTitle>
@@ -332,7 +328,8 @@ export default async function HomePage() {
               {school?.address ?? 'Jl. Pendidikan No. 1, Jakarta'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {school?.phone ?? '+62-21-0000-0000'} · {school?.email ?? 'info@sekolah-contoh.sch.id'}
+              {school?.phone ?? '+62-21-0000-0000'} ·{' '}
+              {school?.email ?? 'info@sekolah-contoh.sch.id'}
             </p>
           </div>
           <p className="text-xs text-slate-400">

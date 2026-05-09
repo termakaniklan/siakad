@@ -24,10 +24,7 @@ export default function LoginPage() {
       />
       <div className="w-full max-w-md">
         <div className="mb-6 text-center text-white">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-2xl font-bold text-white"
-          >
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold text-white">
             <span className="grid h-10 w-10 place-items-center rounded-lg bg-brand-600 text-white shadow-md">
               SK
             </span>
@@ -42,7 +39,9 @@ export default function LoginPage() {
           <p>Lupa password? Hubungi administrator sekolah.</p>
           <p className="text-slate-300/70">
             Demo:{' '}
-            <code className="rounded bg-black/30 px-1 py-0.5 font-mono">superadmin / ChangeMe!2026</code>
+            <code className="rounded bg-black/30 px-1 py-0.5 font-mono">
+              superadmin / ChangeMe!2026
+            </code>
           </p>
         </div>
       </div>

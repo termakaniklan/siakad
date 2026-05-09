@@ -73,9 +73,7 @@ export default async function SiswaKehadiranPage() {
   return (
     <div className="grid gap-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        {(
-          ['present', 'late', 'permission', 'sick', 'absent'] as const
-        ).map((s) => (
+        {(['present', 'late', 'permission', 'sick', 'absent'] as const).map((s) => (
           <Card key={s}>
             <CardHeader className="pb-2">
               <CardDescription className="text-xs uppercase tracking-wider">
@@ -84,7 +82,9 @@ export default async function SiswaKehadiranPage() {
               <CardTitle className="text-3xl">{counters[s] ?? 0}</CardTitle>
             </CardHeader>
             <CardContent>
-              <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${STATUS_LABEL[s]!.cls}`}>
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-xs ${STATUS_LABEL[s]!.cls}`}
+              >
                 {STATUS_LABEL[s]!.emoji}
               </span>
             </CardContent>

@@ -46,26 +46,26 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 
 ### Halaman Depan (Homepage)
 
-| Hero & Navbar | Galeri & Fitur |
-|:---:|:---:|
+|                                                Hero & Navbar                                                 |                                                   Galeri & Fitur                                                   |
+| :----------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------: |
 | ![Homepage Hero](https://app.devin.ai/attachments/70ae1767-9304-40e1-81e9-4abf7302deda/01-homepage-hero.png) | ![Homepage Gallery](https://app.devin.ai/attachments/808cc37d-4083-4f35-b14f-a6f5f3fe5cd3/02-homepage-gallery.png) |
 
 ### Halaman Login
 
-| Login dengan captcha & background AI |
-|:---:|
+|                             Login dengan captcha & background AI                             |
+| :------------------------------------------------------------------------------------------: |
 | ![Login](https://app.devin.ai/attachments/079d550f-64cc-4091-b9f4-f35736aab191/03-login.png) |
 
 ### CBT / Ujian Online
 
-| Lobby — Daftar Ujian Aktif | Soal — Navigasi & Timer |
-|:---:|:---:|
+|                                      Lobby — Daftar Ujian Aktif                                      |                                      Soal — Navigasi & Timer                                       |
+| :--------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------: |
 | ![CBT Lobby](https://app.devin.ai/attachments/401c37a3-fb36-4d01-8214-4eae632d7d70/04-cbt-lobby.png) | ![CBT Soal](https://app.devin.ai/attachments/ec5c99af-e7fd-4c0d-a9b0-35fb10ca9b7e/05-cbt-soal.png) |
 
 ### Kehadiran / Absensi
 
-| Rekap Admin (harian, tren 7 hari, per kelas) | Riwayat Siswa (progress bar, tabel) |
-|:---:|:---:|
+|                                 Rekap Admin (harian, tren 7 hari, per kelas)                                 |                                     Riwayat Siswa (progress bar, tabel)                                      |
+| :----------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------: |
 | ![Absensi Admin](https://app.devin.ai/attachments/e8f54c0e-fada-40e5-863f-f930be036656/06-absensi-admin.png) | ![Absensi Siswa](https://app.devin.ai/attachments/69984d77-9839-4abc-82ee-13905754a9eb/07-absensi-siswa.png) |
 
 ---
@@ -378,27 +378,27 @@ Seeder baseline (`prisma/seed.ts`) memastikan:
 Seeder demo (`prisma/seed-demo.ts`) — _idempotent_, aman dijalankan ulang —
 mengisi puluhan dummy data agar UI terlihat hidup untuk demo / dokumentasi:
 
-| Entitas | Jumlah | Catatan |
-|---|---|---|
-| **Berita** | 30 | publikasi 30 hari ke belakang |
-| **Galeri** | 24 | gambar yang di-generate AI (Pollinations) |
-| **Pengumuman** | 4 | 1 pinned banner + 3 pengumuman |
-| **Mata Pelajaran** | 12 | MTK, BIN, BIG, FIS, KIM, BIO, EKO, SOS, SEJ, INF, PJOK, PAI |
-| **Guru** | 18 | 6 di antaranya menjadi wali kelas |
-| **Kelas** | 6 | X IPA-1, X IPS-1, XI IPA-1, XI IPS-1, XII IPA-1, XII IPS-1 |
-| **Siswa** | 120 | 20 / kelas, NIS `2025xxxx` |
-| **Jadwal** | 12 | 2 jadwal per kelas (Senin & Rabu) |
-| **Absensi** | ~1.680 | 14 hari × 120 siswa, status pseudo-random deterministik |
-| **Ujian CBT** | 5 | masing-masing 10 soal pilihan ganda |
-| **Pendaftar PPDB** | 6 | berbagai status (`submitted`, `verified`, dst.) |
+| Entitas            | Jumlah | Catatan                                                     |
+| ------------------ | ------ | ----------------------------------------------------------- |
+| **Berita**         | 30     | publikasi 30 hari ke belakang                               |
+| **Galeri**         | 24     | gambar yang di-generate AI (Pollinations)                   |
+| **Pengumuman**     | 4      | 1 pinned banner + 3 pengumuman                              |
+| **Mata Pelajaran** | 12     | MTK, BIN, BIG, FIS, KIM, BIO, EKO, SOS, SEJ, INF, PJOK, PAI |
+| **Guru**           | 18     | 6 di antaranya menjadi wali kelas                           |
+| **Kelas**          | 6      | X IPA-1, X IPS-1, XI IPA-1, XI IPS-1, XII IPA-1, XII IPS-1  |
+| **Siswa**          | 120    | 20 / kelas, NIS `2025xxxx`                                  |
+| **Jadwal**         | 12     | 2 jadwal per kelas (Senin & Rabu)                           |
+| **Absensi**        | ~1.680 | 14 hari × 120 siswa, status pseudo-random deterministik     |
+| **Ujian CBT**      | 5      | masing-masing 10 soal pilihan ganda                         |
+| **Pendaftar PPDB** | 6      | berbagai status (`submitted`, `verified`, dst.)             |
 
 Akun demo:
 
-| Role | Username | Password |
-|---|---|---|
-| Super Admin | `superadmin` | `ChangeMe!2026` |
-| Siswa (mis. siswa001) | `siswa001` | `Siswa!2026` |
-| Guru (mis. guru01) | `guru01` | `Guru!2026` |
+| Role                  | Username     | Password        |
+| --------------------- | ------------ | --------------- |
+| Super Admin           | `superadmin` | `ChangeMe!2026` |
+| Siswa (mis. siswa001) | `siswa001`   | `Siswa!2026`    |
+| Guru (mis. guru01)    | `guru01`     | `Guru!2026`     |
 
 Untuk gambar AI di galeri / hero / login background, jalankan:
 

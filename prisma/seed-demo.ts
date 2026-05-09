@@ -401,7 +401,9 @@ async function seedSubjects(): Promise<Map<string, string>> {
   return map;
 }
 
-async function seedTeachers(roles: Record<RoleCode, string>): Promise<Array<{ id: string; fullName: string }>> {
+async function seedTeachers(
+  roles: Record<RoleCode, string>,
+): Promise<Array<{ id: string; fullName: string }>> {
   const teachers: Array<{ id: string; fullName: string }> = [];
   const password = await argon2.hash('Guru!2026', { type: argon2.argon2id });
   for (let i = 1; i <= 18; i++) {
@@ -550,9 +552,7 @@ async function seedSchedules(
   }
 }
 
-async function seedAttendance(
-  students: Array<{ id: string; fullName: string }>,
-): Promise<void> {
+async function seedAttendance(students: Array<{ id: string; fullName: string }>): Promise<void> {
   // 14 weekdays (avoid Sun=0 / Sat=6) up to today.
   const today = new Date();
   today.setHours(7, 0, 0, 0);
@@ -564,7 +564,17 @@ async function seedAttendance(
     // weekends), then keep weekdays only for the rest of the history.
     if (d === 0 || (dow !== 0 && dow !== 6)) days.push(date);
   }
-  const statuses = ['present', 'present', 'present', 'present', 'present', 'late', 'sick', 'permission', 'absent'];
+  const statuses = [
+    'present',
+    'present',
+    'present',
+    'present',
+    'present',
+    'late',
+    'sick',
+    'permission',
+    'absent',
+  ];
   // Idempotent: clear existing demo attendance for these students within the
   // 14-day window so repeated `seed-demo` runs don't accumulate duplicates.
   const studentIds = students.map((s) => s.id);
@@ -670,9 +680,16 @@ async function seedExams(
   return out;
 }
 
-const QUESTION_BANK: Record<string, Array<{ q: string; choices: string[]; correctIndex: number }>> = {
+const QUESTION_BANK: Record<
+  string,
+  Array<{ q: string; choices: string[]; correctIndex: number }>
+> = {
   MTK: [
-    { q: 'Hasil dari 12 × 8 + 24 ÷ 6 adalah …', choices: ['96', '100', '104', '108'], correctIndex: 1 },
+    {
+      q: 'Hasil dari 12 × 8 + 24 ÷ 6 adalah …',
+      choices: ['96', '100', '104', '108'],
+      correctIndex: 1,
+    },
     {
       q: 'Diketahui f(x) = 2x² − 3x + 1. Nilai f(3) adalah …',
       choices: ['10', '12', '14', '16'],
@@ -742,7 +759,12 @@ const QUESTION_BANK: Record<string, Array<{ q: string; choices: string[]; correc
     },
     {
       q: '"Hujan deras mengguyur kota Jakarta tadi malam." Kalimat tersebut termasuk …',
-      choices: ['kalimat tunggal', 'kalimat majemuk setara', 'kalimat majemuk bertingkat', 'kalimat aktif transitif'],
+      choices: [
+        'kalimat tunggal',
+        'kalimat majemuk setara',
+        'kalimat majemuk bertingkat',
+        'kalimat aktif transitif',
+      ],
       correctIndex: 0,
     },
     {
@@ -800,9 +822,9 @@ const QUESTION_BANK: Record<string, Array<{ q: string; choices: string[]; correc
     {
       q: 'Which sentence is grammatically correct?',
       choices: [
-        'He don\'t like coffee.',
-        'He doesn\'t like coffee.',
-        'He isn\'t likes coffee.',
+        "He don't like coffee.",
+        "He doesn't like coffee.",
+        "He isn't likes coffee.",
         'He not likes coffee.',
       ],
       correctIndex: 1,

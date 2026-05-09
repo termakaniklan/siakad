@@ -47,7 +47,9 @@ export default async function AdminKehadiranPage() {
       .findMany({
         where: { deletedAt: null },
         include: {
-          enrollments: { include: { student: { select: { id: true, fullName: true, nis: true } } } },
+          enrollments: {
+            include: { student: { select: { id: true, fullName: true, nis: true } } },
+          },
           homeroomTeacher: { select: { fullName: true } },
         },
         orderBy: { name: 'asc' },
@@ -85,7 +87,9 @@ export default async function AdminKehadiranPage() {
               <CardTitle className="text-3xl">{counters[s] ?? 0}</CardTitle>
             </CardHeader>
             <CardContent>
-              <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${STATUS_LABEL[s]!.cls}`}>
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-xs ${STATUS_LABEL[s]!.cls}`}
+              >
                 Hari ini
               </span>
             </CardContent>
@@ -96,9 +100,7 @@ export default async function AdminKehadiranPage() {
       <Card>
         <CardHeader>
           <CardTitle>Tren 7 Hari Terakhir</CardTitle>
-          <CardDescription>
-            Persentase kehadiran (hadir + terlambat) per hari.
-          </CardDescription>
+          <CardDescription>Persentase kehadiran (hadir + terlambat) per hari.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-2">
@@ -112,7 +114,7 @@ export default async function AdminKehadiranPage() {
                   />
                 </div>
                 <p className="mt-2 text-xs text-slate-500">{d.dayLabel}</p>
-                <p className="text-xs font-mono">{d.pct}%</p>
+                <p className="font-mono text-xs">{d.pct}%</p>
               </div>
             ))}
           </div>
@@ -166,9 +168,7 @@ export default async function AdminKehadiranPage() {
                     <td className="px-4 py-2 text-emerald-700 dark:text-emerald-300">
                       {c.present ?? 0}
                     </td>
-                    <td className="px-4 py-2 text-amber-700 dark:text-amber-300">
-                      {c.late ?? 0}
-                    </td>
+                    <td className="px-4 py-2 text-amber-700 dark:text-amber-300">{c.late ?? 0}</td>
                     <td className="px-4 py-2 text-blue-700 dark:text-blue-300">
                       {c.permission ?? 0}
                     </td>
