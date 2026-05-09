@@ -1,0 +1,23 @@
+{
+  "name": "SIAKAD — Sistem Informasi Akademik",
+  "short_name": "SIAKAD",
+  "description": "Sistem Informasi Akademik Sekolah Indonesia (PWA).",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a52e6",
+  "lang": "id-ID",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Login", "short_name": "Login", "url": "/login", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "PPDB", "short_name": "PPDB", "url": "/ppdb", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Berita", "short_name": "Berita", "url": "/berita", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
