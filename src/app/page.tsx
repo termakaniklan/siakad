@@ -6,7 +6,6 @@ import { buildContentSlug } from '@/lib/utils';
 import { prisma } from '@/shared/db/prisma';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60;
 
 const FEATURES: Array<{ title: string; description: string }> = [
   {

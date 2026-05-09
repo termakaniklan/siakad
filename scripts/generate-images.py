@@ -33,7 +33,7 @@ def is_jpeg(data: bytes) -> bool:
 def fetch(prompt: str, out: str, *, w: int = 1280, h: int = 720, attempts: int = 5) -> bool:
     if os.path.exists(out) and os.path.getsize(out) > 4096:
         with open(out, "rb") as f:
-            if is_jpeg(f.read(8)):
+            if f.read(3) == b"\xff\xd8\xff":
                 print(f"[skip] {os.path.basename(out)}")
                 return True
     enc = urllib.parse.quote(prompt, safe="")
