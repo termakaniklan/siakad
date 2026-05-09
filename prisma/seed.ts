@@ -1,15 +1,13 @@
 /* eslint-disable no-console */
-import { PrismaClient } from '@prisma/client';
 import argon2 from 'argon2';
 
+import { prisma } from '../src/shared/db/prisma';
 import {
   ALL_PERMISSIONS,
   defaultRolePermissions,
   ROLES,
   type RoleCode,
 } from '../src/modules/rbac/permissions';
-
-const prisma = new PrismaClient();
 
 const ROLE_DESCRIPTIONS: Record<RoleCode, { name: string; description: string }> = {
   super_admin: {

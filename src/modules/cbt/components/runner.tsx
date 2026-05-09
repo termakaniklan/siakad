@@ -196,7 +196,7 @@ export function CbtRunner({ exam }: { exam: ExamRuntime }) {
             }`}
             aria-live="polite"
           >
-            {formatTime(timeLeft)}
+            ⏱ {formatTime(timeLeft)}
           </span>
           {exam.fullscreenRequired && (
             <Button size="sm" variant="outline" onClick={requestFullscreen}>
@@ -206,7 +206,7 @@ export function CbtRunner({ exam }: { exam: ExamRuntime }) {
         </div>
       </header>
 
-      <section className="container py-6">
+      <section className="container grid gap-6 py-6 lg:grid-cols-[1fr_280px]">
         {q ? (
           <Card>
             <CardHeader>
@@ -267,6 +267,56 @@ export function CbtRunner({ exam }: { exam: ExamRuntime }) {
         ) : (
           <p>Tidak ada soal.</p>
         )}
+
+        <aside className="order-first lg:order-last">
+          <Card className="sticky top-20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Navigasi Soal</CardTitle>
+              <CardDescription className="text-xs">
+                {Object.keys(answers).length}/{ordered.length} terjawab
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-5 gap-2" role="navigation" aria-label="Navigasi soal">
+                {ordered.map((qq, idx) => {
+                  const answered = !!answers[qq.id]?.choiceId || !!answers[qq.id]?.textAnswer;
+                  const isCurrent = idx === current;
+                  return (
+                    <button
+                      key={qq.id}
+                      type="button"
+                      onClick={() => setCurrent(idx)}
+                      aria-current={isCurrent ? 'true' : undefined}
+                      className={
+                        isCurrent
+                          ? 'rounded-md border-2 border-brand-600 bg-brand-50 px-2 py-1.5 text-sm font-bold text-brand-800 dark:bg-brand-900/40 dark:text-brand-100'
+                          : answered
+                            ? 'rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
+                            : 'rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300'
+                      }
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+              </div>
+              <ul className="mt-4 space-y-1 text-xs text-slate-500">
+                <li>
+                  <span className="mr-1 inline-block h-2 w-2 rounded-sm border-2 border-brand-600 bg-brand-50 align-middle" />
+                  Soal aktif
+                </li>
+                <li>
+                  <span className="mr-1 inline-block h-2 w-2 rounded-sm border border-emerald-300 bg-emerald-50 align-middle" />
+                  Sudah dijawab
+                </li>
+                <li>
+                  <span className="mr-1 inline-block h-2 w-2 rounded-sm border border-slate-300 bg-white align-middle" />
+                  Belum dijawab
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </aside>
       </section>
     </main>
   );
