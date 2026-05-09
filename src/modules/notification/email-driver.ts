@@ -1,3 +1,4 @@
+import DOMPurify from 'isomorphic-dompurify';
 import nodemailer, { type Transporter } from 'nodemailer';
 
 import { env } from '@/shared/config/env';
@@ -18,6 +19,17 @@ export function getMailTransport(): Transporter {
   return transporter;
 }
 
+/**
+ * Strip HTML to plain text using a real parser instead of a naive regex.
+ *
+ * A regex like `/<[^>]+>/g` mishandles nested or malformed tags (CodeQL: incomplete
+ * multi-character sanitization). DOMPurify with `ALLOWED_TAGS: []` produces a safe
+ * text representation regardless of input shape.
+ */
+function htmlToPlainText(html: string): string {
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [], KEEP_CONTENT: true });
+}
+
 export async function sendEmail(opts: {
   to: string;
   subject: string;
@@ -29,7 +41,7 @@ export async function sendEmail(opts: {
     from: env.MAIL_FROM,
     to: opts.to,
     subject: opts.subject,
-    text: opts.text ?? opts.html.replace(/<[^>]+>/g, ''),
+    text: opts.text ?? htmlToPlainText(opts.html),
     html: opts.html,
   });
 }
