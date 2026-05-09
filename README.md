@@ -46,36 +46,36 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 
 ### Halaman Depan (Homepage)
 
-|                                                Hero & Navbar                                                 |                                                   Galeri & Fitur                                                   |
-| :----------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------: |
-| ![Homepage Hero](https://app.devin.ai/attachments/70ae1767-9304-40e1-81e9-4abf7302deda/01-homepage-hero.png) | ![Homepage Gallery](https://app.devin.ai/attachments/808cc37d-4083-4f35-b14f-a6f5f3fe5cd3/02-homepage-gallery.png) |
+|                      Hero & Navbar                      |                        Galeri & Fitur                         |
+| :-----------------------------------------------------: | :-----------------------------------------------------------: |
+| ![Homepage Hero](docs/screenshots/01-homepage-hero.png) | ![Homepage Gallery](docs/screenshots/02-homepage-gallery.png) |
 
 ### Halaman Login
 
-|                             Login dengan captcha & background AI                             |
-| :------------------------------------------------------------------------------------------: |
-| ![Login](https://app.devin.ai/attachments/079d550f-64cc-4091-b9f4-f35736aab191/03-login.png) |
+|  Login dengan captcha & background AI   |
+| :-------------------------------------: |
+| ![Login](docs/screenshots/03-login.png) |
 
 ### CBT / Ujian Online
 
-|                                      Lobby — Daftar Ujian Aktif                                      |                                      Soal — Navigasi & Timer                                       |
-| :--------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------: |
-| ![CBT Lobby](https://app.devin.ai/attachments/401c37a3-fb36-4d01-8214-4eae632d7d70/04-cbt-lobby.png) | ![CBT Soal](https://app.devin.ai/attachments/ec5c99af-e7fd-4c0d-a9b0-35fb10ca9b7e/05-cbt-soal.png) |
+|           Lobby — Daftar Ujian Aktif            |            Soal — Navigasi & Timer            |
+| :---------------------------------------------: | :-------------------------------------------: |
+| ![CBT Lobby](docs/screenshots/04-cbt-lobby.png) | ![CBT Soal](docs/screenshots/05-cbt-soal.png) |
 
 ### Kehadiran / Absensi
 
-|                                 Rekap Admin (harian, tren 7 hari, per kelas)                                 |                                     Riwayat Siswa (progress bar, tabel)                                      |
-| :----------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------: |
-| ![Absensi Admin](https://app.devin.ai/attachments/e8f54c0e-fada-40e5-863f-f930be036656/06-absensi-admin.png) | ![Absensi Siswa](https://app.devin.ai/attachments/69984d77-9839-4abc-82ee-13905754a9eb/07-absensi-siswa.png) |
+|      Rekap Admin (harian, tren 7 hari, per kelas)       |           Riwayat Siswa (progress bar, tabel)           |
+| :-----------------------------------------------------: | :-----------------------------------------------------: |
+| ![Absensi Admin](docs/screenshots/06-absensi-admin.png) | ![Absensi Siswa](docs/screenshots/07-absensi-siswa.png) |
 
 ### Portal Orang Tua / Wali
 
 > Login sebagai `ortu001 / OrangTua!2026` (akun demo dibuat otomatis oleh
 > `npm run db:seed-demo`, satu akun orang tua per siswa, total 120 akun).
 
-|                                  Dashboard — anak, kehadiran 14 hari, ujian mendatang                                   |                                                    Ujian & Pengumuman                                                     |
-| :---------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------: |
-| ![Orang Tua Dashboard](https://app.devin.ai/attachments/ac5a76a4-f5d2-4490-b7a8-84f9ff96c34f/08-orangtua-dashboard.png) | ![Orang Tua Pengumuman](https://app.devin.ai/attachments/64a9316f-a533-4d7f-a3df-e313e3f7b01b/09-orangtua-pengumuman.png) |
+|        Dashboard — anak, kehadiran 14 hari, ujian mendatang        |                          Ujian & Pengumuman                          |
+| :----------------------------------------------------------------: | :------------------------------------------------------------------: |
+| ![Orang Tua Dashboard](docs/screenshots/08-orangtua-dashboard.png) | ![Orang Tua Pengumuman](docs/screenshots/09-orangtua-pengumuman.png) |
 
 ---
 
