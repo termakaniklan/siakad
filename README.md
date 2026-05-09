@@ -48,7 +48,7 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 
 |                                                Hero & Navbar                                                 |                                                   Galeri & Fitur                                                   |
 | :----------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------: |
-| ![Homepage Hero](docs/screenshots/01-homepage-hero.png) | ![Homepage Gallery](docs/screenshots02-homepage-gallery.png) |
+| ![Homepage Hero](docs/screenshots/01-homepage-hero.png) | ![Homepage Gallery](docs/screenshots/02-homepage-gallery.png) |
 
 ### Halaman Login
 
