@@ -1,5 +1,56 @@
 # SIAKAD — Sistem Informasi Akademik Sekolah (PWA)
 
+<!-- Tech stack & versi terpasang. Versi diambil dari `package.json`, `docker-compose.yml`, dan field `engines`. -->
+
+**Runtime & framework**
+
+[![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A520.10-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=000)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PWA](https://img.shields.io/badge/PWA-manifest%20%2B%20SW-5A0FC8?logo=pwa&logoColor=white)](public/manifest.webmanifest)
+
+**Data & cache**
+
+[![Prisma](https://img.shields.io/badge/Prisma-7.8-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io)
+[![MariaDB](https://img.shields.io/badge/MariaDB-11-003545?logo=mariadb&logoColor=white)](https://mariadb.org)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io)
+[![BullMQ](https://img.shields.io/badge/BullMQ-5-E0234E?logo=bull&logoColor=white)](https://docs.bullmq.io)
+[![ioredis](https://img.shields.io/badge/ioredis-5-DC382D?logo=redis&logoColor=white)](https://github.com/redis/ioredis)
+
+**UI & styling**
+
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-base-000000?logo=shadcnui&logoColor=white)](https://ui.shadcn.com)
+[![Lucide](https://img.shields.io/badge/Lucide-0.453-F56565?logo=lucide&logoColor=white)](https://lucide.dev)
+[![TanStack Query](https://img.shields.io/badge/TanStack%20Query-5-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query)
+[![Zustand](https://img.shields.io/badge/Zustand-5-443E38?logo=react&logoColor=white)](https://zustand-demo.pmnd.rs)
+
+**Auth & security**
+
+[![Argon2id](https://img.shields.io/badge/Argon2id-hash-3C3C3D?logo=keepassxc&logoColor=white)](https://github.com/ranisalt/node-argon2)
+[![iron-session](https://img.shields.io/badge/iron--session-8-2E2E2E?logo=auth0&logoColor=white)](https://github.com/vvo/iron-session)
+[![JOSE / JWT](https://img.shields.io/badge/JOSE%20JWT-5-D63AFF?logo=jsonwebtokens&logoColor=white)](https://github.com/panva/jose)
+[![Zod](https://img.shields.io/badge/Zod-3-3E67B1?logo=zod&logoColor=white)](https://zod.dev)
+[![DOMPurify](https://img.shields.io/badge/DOMPurify-3-1F8A70?logo=cure53&logoColor=white)](https://github.com/cure53/DOMPurify)
+
+**Notifikasi & worker**
+
+[![Nodemailer](https://img.shields.io/badge/Nodemailer-6-22B573?logo=minutemailer&logoColor=white)](https://nodemailer.com)
+[![Pino](https://img.shields.io/badge/Pino-9-687634?logo=pino&logoColor=white)](https://getpino.io)
+
+**Tooling, CI & infra**
+
+[![Vitest](https://img.shields.io/badge/Vitest-2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev)
+[![ESLint](https://img.shields.io/badge/ESLint-9-4B32C3?logo=eslint&logoColor=white)](https://eslint.org)
+[![Prettier](https://img.shields.io/badge/Prettier-3-F7B93E?logo=prettier&logoColor=000)](https://prettier.io)
+[![Docker](https://img.shields.io/badge/Docker-multistage-2496ED?logo=docker&logoColor=white)](Dockerfile)
+[![Docker Compose](https://img.shields.io/badge/Docker%20Compose-app%20%2B%20worker%20%2B%20db%20%2B%20redis%20%2B%20nginx-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+[![Nginx](https://img.shields.io/badge/Nginx-1.27-009639?logo=nginx&logoColor=white)](deploy/nginx/nginx.conf)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%20%2B%20CodeQL-2088FF?logo=githubactions&logoColor=white)](.github/workflows)
+
+**Status repo**
+
 [![CI](https://github.com/termakaniklan/siakad/actions/workflows/ci.yml/badge.svg)](https://github.com/termakaniklan/siakad/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/termakaniklan/siakad/actions/workflows/codeql.yml/badge.svg)](https://github.com/termakaniklan/siakad/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
