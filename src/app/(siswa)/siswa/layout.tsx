@@ -1,30 +1,36 @@
 import { redirect } from 'next/navigation';
 
+import { PortalShell } from '@/components/portal/shell';
 import { getPrincipal } from '@/modules/auth/principal';
+import { filterNav, SISWA_NAV } from '@/modules/rbac/nav';
 import { ROLES } from '@/modules/rbac/permissions';
+import { prisma } from '@/shared/db/prisma';
 
 export default async function SiswaLayout({ children }: { children: React.ReactNode }) {
   const principal = await getPrincipal();
   if (!principal) redirect('/login');
   if (
     !principal.roleCodes.some((c) =>
-      [
-        ROLES.SISWA,
-        ROLES.ORANG_TUA,
-        ROLES.GURU,
-        ROLES.WALI_KELAS,
-        ROLES.ADMIN,
-        ROLES.SUPER_ADMIN,
-      ].includes(c as never),
+      [ROLES.SISWA, ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(c as never),
     )
   ) {
     redirect('/');
   }
+  const user = await prisma.user.findUnique({
+    where: { id: principal.userId },
+    select: { fullName: true, avatarUrl: true },
+  });
+  const catalogue = filterNav(SISWA_NAV, principal);
   return (
-    <div className="container py-10">
-      <h1 className="text-2xl font-bold">Portal Siswa</h1>
-      <p className="mt-1 text-sm text-slate-500">Akses jadwal, nilai, ujian, kehadiran.</p>
-      <section className="mt-6">{children}</section>
-    </div>
+    <PortalShell
+      catalogue={catalogue}
+      user={{
+        fullName: user?.fullName ?? 'Siswa',
+        avatarUrl: user?.avatarUrl ?? null,
+        roleCodes: principal.roleCodes,
+      }}
+    >
+      {children}
+    </PortalShell>
   );
 }

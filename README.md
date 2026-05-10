@@ -147,15 +147,38 @@ komputer_.
 - Siswa: jadwal, nilai, ujian aktif, kehadiran, materi, pengumuman.
 - Orang tua / wali: melihat data anak yang ditautkan.
 - Guru: input nilai, kehadiran, unggah materi, jadwal, soal.
+- **Navigasi otomatis di-filter RBAC**: setiap item menu di sidebar diuji terhadap
+  `principal.roleCodes` & `principal.permissionCodes` sebelum dirender.
+  Item yang tersembunyi tetap diblokir di sisi server (layout guard + permission
+  check) sehingga manipulasi DOM tidak membuka rute terlarang.
+- **Post-login redirect by role**: super_admin/admin/operator → `/admin`,
+  guru/wali_kelas → `/guru`, siswa → `/siswa`, orang_tua → `/orangtua`.
 
-### 2.6 Notifikasi
+### 2.6 Profil & Branding
+
+- **Profil pengguna** (`/akun/profil`): semua role dapat mengubah foto profil,
+  nama lengkap, telepon, dan password sendiri. Foto disimpan ke
+  `public/uploads/avatars/<uuid>.<ext>` setelah lolos validasi **magic-byte**
+  (PNG/JPG/WebP/GIF), batas **2 MB**, dengan rate-limit 5 upload/menit/user.
+  Ganti password mewajibkan password lama, ditambah otomatis mengakhiri seluruh
+  sesi pengguna lain.
+- **Reset password** (`/reset-password`): tautan "Lupa password?" tersedia di
+  form login. Token ditandatangani HMAC, berlaku 15 menit, single-use; respons
+  selalu generik untuk mencegah enumerasi akun. Konfirmasi token mengakhiri
+  semua sesi aktif user tersebut.
+- **Branding admin** (`/admin/sistem/branding`): admin/super_admin dapat
+  mengubah favicon, background login, logo, judul situs, dan warna utama.
+  Favicon & background otomatis dirender di `app/layout.tsx` (metadata) dan
+  halaman login (`<img>` background). Setiap perubahan masuk ke `AuditLog`.
+
+### 2.7 Notifikasi
 
 - Email (SMTP, Nodemailer) dengan template HTML.
 - WhatsApp (driver Twilio / Meta Cloud API / Fonnte / custom).
 - Web Push (Service Worker + VAPID — placeholder VAPID key disediakan).
 - Antrian latar via **BullMQ** (redis-backed) dengan retry + DLQ.
 
-### 2.7 PWA
+### 2.8 PWA
 
 - `manifest.webmanifest` + ikon adaptif (192/512/maskable).
 - Service worker (`public/sw.js`) — strategy network-first untuk navigasi,
@@ -216,24 +239,131 @@ src/
 
 ## 4. Stack Teknologi
 
-| Layer       | Tooling                                                                                           |
-| ----------- | ------------------------------------------------------------------------------------------------- |
-| Runtime     | Node.js **22.12.0+**                                                                              |
-| Framework   | **Next.js 15** (App Router, React 19, standalone build, Edge middleware)                          |
-| Bahasa      | TypeScript 5.x (`strict` + `noUncheckedIndexedAccess` + `noImplicitAny`)                          |
-| ORM         | **Prisma 7.8** + driver adapter `@prisma/adapter-mariadb`                                         |
-| Database    | **MariaDB 11** (utama) — kompatibel ke Postgres/Oracle/MSSQL via swap provider Prisma             |
-| Cache/Queue | **Redis 7** (ioredis) + **BullMQ 5**                                                              |
-| Auth        | **iron-session** (cookie session) + **jose** (JWT API), **argon2id** untuk hash password          |
-| UI          | TailwindCSS 3, shadcn/ui base, Radix primitives, lucide icons, dark/light theme via `next-themes` |
-| Validasi    | **zod**                                                                                           |
-| Sanitisasi  | DOMPurify (isomorphic-dompurify)                                                                  |
-| Mail        | nodemailer                                                                                        |
-| Payment     | Midtrans (server-key + webhook signature) — driver siap, key opsional                             |
-| Logging     | pino (JSON) + pino-pretty (dev)                                                                   |
-| Testing     | Vitest (unit + integration), Playwright config (E2E), Lighthouse CI siap diaktifkan               |
-| CI          | GitHub Actions (`ci.yml`, `codeql.yml`)                                                           |
-| Container   | Multi-stage Dockerfile + docker-compose (app, worker, mariadb, redis, nginx)                      |
+### 4.1 Ringkasan
+
+| Layer       | Tooling                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| Runtime     | Node.js **22.12.0+** (`engines.node >= 20.10`)                                           |
+| Framework   | **Next.js 15** (App Router, React 19, Server Actions, standalone build, Edge middleware) |
+| Bahasa      | **TypeScript 5.6** (`strict` + `noUncheckedIndexedAccess` + `noImplicitAny`)             |
+| ORM         | **Prisma 7.8** + driver adapter `@prisma/adapter-mariadb`                                |
+| Database    | **MariaDB 11** (utama) — kompatibel ke Postgres/Oracle/MSSQL via swap provider Prisma    |
+| Cache/Queue | **Redis 7** (ioredis) + **BullMQ 5**                                                     |
+| Auth        | **iron-session** (cookie session) + **jose** (JWT API), **argon2id** untuk hash password |
+| UI          | TailwindCSS 3, shadcn/ui base, Radix primitives, lucide-react ikon, dark/light theme     |
+| Validasi    | **zod**                                                                                  |
+| Sanitisasi  | DOMPurify (isomorphic-dompurify) — anti-XSS untuk konten kaya CMS                        |
+| Mail        | nodemailer (SMTP)                                                                        |
+| Payment     | Midtrans (server-key + webhook signature) — driver siap, key opsional                    |
+| Logging     | pino (JSON) + pino-pretty (dev)                                                          |
+| State       | TanStack Query 5 (server cache) + Zustand 5 (UI state)                                   |
+| Testing     | Vitest (unit + integration), Playwright config (E2E), Lighthouse CI siap diaktifkan      |
+| CI          | GitHub Actions (`ci.yml`, `codeql.yml`)                                                  |
+| Container   | Multi-stage Dockerfile + docker-compose (app, worker, mariadb, redis, nginx)             |
+
+### 4.2 Dependencies (Aplikasi)
+
+Semua versi mengacu pada `package.json` di repo ini.
+
+#### Web framework & UI
+
+| Paket                                    | Versi    | Fungsi                                                          |
+| ---------------------------------------- | -------- | --------------------------------------------------------------- |
+| `next`                                   | ^15.5.0  | Framework full-stack (App Router, RSC, Server Actions, Edge MW) |
+| `react`, `react-dom`                     | ^19.0.0  | UI runtime                                                      |
+| `tailwindcss`, `autoprefixer`, `postcss` | ^3.4.14  | Utility-first styling                                           |
+| `tailwind-merge`                         | ^2.5.4   | Resolusi konflik class Tailwind                                 |
+| `class-variance-authority`               | ^0.7.0   | Varian komponen (button, badge, dsb.)                           |
+| `clsx`                                   | ^2.1.1   | Komposisi className kondisional                                 |
+| `lucide-react`                           | ^0.453.0 | Ikon SVG terstandar                                             |
+| `prettier-plugin-tailwindcss`            | ^0.6.8   | Auto-sort kelas Tailwind                                        |
+
+#### State, data fetching, validasi
+
+| Paket                   | Versi   | Fungsi                                            |
+| ----------------------- | ------- | ------------------------------------------------- |
+| `@tanstack/react-query` | ^5.59.0 | Cache server-side untuk client components         |
+| `zustand`               | ^5.0.0  | UI state ringan (sidebar, drawer, dsb.)           |
+| `zod`                   | ^3.23.8 | Validasi runtime untuk semua API + form           |
+| `uuid` + `@types/uuid`  | ^10.0.0 | Generator ID portable (untuk file storage / dsb.) |
+
+#### Database, queue, cache
+
+| Paket                      | Versi   | Fungsi                                           |
+| -------------------------- | ------- | ------------------------------------------------ |
+| `@prisma/client`, `prisma` | 7.8.0   | ORM type-safe + migrasi                          |
+| `@prisma/adapter-mariadb`  | 7.8.0   | Adapter native untuk MariaDB                     |
+| `mariadb`                  | ^3.4.0  | Driver MariaDB (di-wrap oleh adapter Prisma)     |
+| `ioredis`                  | ^5.4.1  | Redis client (rate-limit + cache + queue)        |
+| `bullmq`                   | ^5.21.0 | Queue worker (notifikasi email/WA, ekspor, dsb.) |
+
+#### Keamanan & autentikasi
+
+| Paket                                                   | Versi   | Fungsi                                                           |
+| ------------------------------------------------------- | ------- | ---------------------------------------------------------------- |
+| `argon2`                                                | ^0.41.1 | Hash password Argon2id (parameter OWASP 2024)                    |
+| `iron-session`                                          | ^8.0.4  | Cookie session terenkripsi (AEAD), HTTP-only, SameSite=Lax       |
+| `jose`                                                  | ^5.9.4  | JWT (HS256) untuk akses API + signed token reset password (HMAC) |
+| `dompurify`, `isomorphic-dompurify`, `@types/dompurify` | ^3.x    | Sanitasi HTML CMS (anti-XSS, anti-tag berbahaya)                 |
+
+#### Notifikasi
+
+| Paket                             | Versi   | Fungsi                                   |
+| --------------------------------- | ------- | ---------------------------------------- |
+| `nodemailer`, `@types/nodemailer` | ^6.9.15 | Driver email (SMTP / mailtrap / Mailpit) |
+
+#### Logging
+
+| Paket         | Versi   | Fungsi                                  |
+| ------------- | ------- | --------------------------------------- |
+| `pino`        | ^9.4.0  | Structured logging (JSON, low overhead) |
+| `pino-pretty` | ^11.2.2 | Pretty print untuk development          |
+
+### 4.3 DevDependencies
+
+| Paket                              | Versi   | Fungsi                                          |
+| ---------------------------------- | ------- | ----------------------------------------------- |
+| `typescript`                       | ^5.6.3  | Type-checker (`tsc --noEmit`)                   |
+| `@types/node`                      | ^22.7.5 | Tipe Node.js                                    |
+| `@types/react`, `@types/react-dom` | ^19.0.0 | Tipe React 19                                   |
+| `eslint`, `eslint-config-next`     | ^9.13.0 | Linter (Next.js + TypeScript-aware)             |
+| `prettier`                         | ^3.3.3  | Formatter kode + Markdown                       |
+| `tsx`                              | ^4.19.1 | Eksekusi TypeScript untuk seeder & queue worker |
+| `vitest`                           | ^2.1.3  | Unit & integration tests (jsdom + node env)     |
+
+### 4.4 Infrastruktur (di luar npm)
+
+| Komponen       | Versi             | Catatan                                                                 |
+| -------------- | ----------------- | ----------------------------------------------------------------------- |
+| Node.js        | ≥ 20.10 (rec. 22) | Runtime aplikasi & worker                                               |
+| MariaDB        | 11.4              | Database utama (port 3307 di docker-compose untuk hindari bentrok host) |
+| Redis          | 7                 | Cache + queue + rate-limit (port 6380)                                  |
+| Nginx          | 1.27              | Reverse proxy + TLS termination + rate-limit zone                       |
+| Docker         | ≥ 24              | Build multi-stage; runtime via docker-compose                           |
+| docker-compose | v2 plugin         | Orkestrasi local & deploy dasar                                         |
+
+### 4.5 GitHub Actions / CI
+
+| Workflow                       | Pipeline                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`     | install → `prisma generate` → `format:check` → `lint` → `typecheck` → `vitest run` → `next build` |
+| `.github/workflows/codeql.yml` | CodeQL static analysis (JavaScript/TypeScript)                                                    |
+
+### 4.6 Skrip npm
+
+| Skrip                                                                          | Tujuan                                                                               |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `npm run dev`                                                                  | Mode development (hot reload)                                                        |
+| `npm run build`                                                                | Build produksi (standalone)                                                          |
+| `npm run start`                                                                | Jalankan build produksi                                                              |
+| `npm run lint`                                                                 | ESLint                                                                               |
+| `npm run typecheck`                                                            | `tsc --noEmit`                                                                       |
+| `npm run test`                                                                 | Vitest run                                                                           |
+| `npm run format`                                                               | Prettier write                                                                       |
+| `npm run prisma:generate` / `npm run prisma:migrate` / `npm run prisma:deploy` | Tools Prisma                                                                         |
+| `npm run db:seed`                                                              | Seed minimal (RBAC + akun super admin)                                               |
+| `npm run db:seed-demo`                                                         | Seed minimal **+** dummy demo (siswa, guru, kelas, ujian, berita, galeri, orang tua) |
+| `npm run queue:worker`                                                         | Worker BullMQ untuk notifikasi & job background                                      |
 
 ## 5. Persyaratan Server
 
@@ -489,6 +619,37 @@ import { getPrincipal } from '@/modules/auth/principal';
 const principal = await getPrincipal();
 authorize(principal, PERMISSIONS.GRADE_INPUT); // melempar 403 kalau tidak berwenang
 ```
+
+### Matriks CRUD per Role
+
+Berikut ringkasan operasi yang diizinkan per role pada entitas inti. Tanda **C/R/U/D** = Create/Read/Update/Delete. **Self** berarti hanya pada record milik sendiri; **Class** berarti hanya pada kelas/mapel yang diampu; **Linked** berarti hanya pada anak yang ditautkan via `ParentLink`.
+
+| Entitas / Modul                                             | Super Admin | Admin    | Operator | Guru / Wali Kelas | Siswa        | Orang Tua    |
+| ----------------------------------------------------------- | ----------- | -------- | -------- | ----------------- | ------------ | ------------ |
+| Pengguna (`User`)                                           | C/R/U/D     | C/R/U/D  | R        | —                 | R (self)     | R (self)     |
+| Profil sendiri (foto + data)                                | U (self)    | U (self) | U (self) | U (self)          | U (self)     | U (self)     |
+| Role / Permission                                           | C/R/U/D     | R        | R        | —                 | —            | —            |
+| Tahun Ajaran / Kelas / Mapel                                | C/R/U/D     | C/R/U/D  | R        | R                 | R            | R            |
+| Jadwal Pelajaran                                            | C/R/U/D     | C/R/U/D  | C/R/U    | R (Class)         | R (self)     | R (Linked)   |
+| Nilai (`Grade`)                                             | R           | R        | R        | C/R/U (Class)     | R (self)     | R (Linked)   |
+| Kehadiran (`AttendanceMark`)                                | R/U         | R/U      | C/R/U    | C/R/U (Class)     | R (self)     | R (Linked)   |
+| Materi (`MaterialUpload`)                                   | R           | R        | R        | C/R/U/D (Class)   | R (Class)    | —            |
+| Pelanggaran (`Violation`)                                   | R           | R        | R        | C/R/U (Class)     | R (self)     | R (Linked)   |
+| Bank Soal / `Exam`                                          | C/R/U/D     | C/R/U/D  | R        | C/R/U/D (own)     | R (taken)    | —            |
+| Pengambilan Ujian (`ExamAttempt`)                           | R           | R        | R        | R (Class)         | C/R (self)   | R (Linked)   |
+| Berita (`NewsPost`)                                         | C/R/U/D     | C/R/U/D  | C/R/U    | R                 | R            | R            |
+| Galeri (`GalleryItem`)                                      | C/R/U/D     | C/R/U/D  | C/R/U    | R                 | R            | R            |
+| Pengumuman (`Announcement`)                                 | C/R/U/D     | C/R/U/D  | C/R/U    | R (audience)      | R (audience) | R (audience) |
+| PPDB Applications                                           | C/R/U/D     | C/R/U/D  | R/U      | —                 | R (self)     | —            |
+| Settings / Branding (favicon, login bg, judul, warna utama) | C/R/U/D     | C/R/U/D  | R        | —                 | —            | —            |
+| Audit Log                                                   | R           | R        | —        | —                 | —            | —            |
+
+Penegakan:
+
+1. **Layout-level guard** — setiap route group memiliki `layout.tsx` yang memanggil `getPrincipal()` lalu redirect kalau role tidak diizinkan (mis. siswa coba buka `/admin` → dipindah ke `/siswa`).
+2. **Permission-level guard** — setiap server action / API route memanggil `hasAnyPermission(principal, PERMISSIONS.X)` sebelum memproses.
+3. **Ownership / scope guard** — query Prisma membatasi `where` ke `principal.userId` (siswa), `homeroomTeacherId` / `teacherId` (guru), atau `ParentLink` (orang tua). Resource ID dari URL **tidak pernah** dipakai mentah; semuanya divalidasi `zod` lalu dijoin ke kepemilikan untuk mencegah IDOR.
+4. **Audit log** — seluruh write action (create / update / delete) menulis `AuditLog` dengan `actorUserId` yang diresolved dari prinsipal, bukan dari payload request.
 
 ## 12. Keamanan & Hardening
 

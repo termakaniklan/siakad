@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { authenticate, loginSchema } from '@/modules/auth/login-service';
+import { getSession } from '@/modules/auth/session';
+import { landingPathForRoles } from '@/modules/rbac/nav';
 import { logger } from '@/shared/logger';
 
 export async function POST(req: Request) {
@@ -27,7 +29,9 @@ export async function POST(req: Request) {
         { status: result.rateLimited ? 429 : 401 },
       );
     }
-    return NextResponse.json({ ok: true, redirect: '/admin' });
+    const session = await getSession();
+    const redirect = landingPathForRoles(session.roleCodes ?? []);
+    return NextResponse.json({ ok: true, redirect });
   } catch (err) {
     logger.error({ err }, 'login.error');
     return NextResponse.json({ ok: false, message: 'Terjadi kesalahan.' }, { status: 500 });

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -152,6 +153,17 @@ export function LoginForm() {
           <Button type="submit" disabled={submitting}>
             {submitting ? 'Memproses…' : 'Masuk'}
           </Button>
+          <div className="flex items-center justify-between text-sm">
+            <Link
+              href="/reset-password"
+              className="text-brand-700 hover:underline dark:text-brand-300"
+            >
+              Lupa password?
+            </Link>
+            <Link href="/ppdb" className="text-slate-500 hover:underline dark:text-slate-400">
+              Daftar PPDB →
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>
