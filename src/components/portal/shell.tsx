@@ -7,93 +7,43 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme/theme-provider';
 
-interface MenuLeaf {
-  label: string;
-  href: string;
-}
-interface MenuGroup {
-  label: string;
-  children: MenuLeaf[];
-}
+import type { NavCatalogue } from '@/modules/rbac/nav';
 
-const MENU: MenuGroup[] = [
-  {
-    label: 'Beranda',
-    children: [{ label: 'Dashboard', href: '/admin' }],
-  },
-  {
-    label: 'Akademik',
-    children: [
-      { label: 'Tahun Ajaran', href: '/admin/akademik/tahun-ajaran' },
-      { label: 'Kelas', href: '/admin/akademik/kelas' },
-      { label: 'Mata Pelajaran', href: '/admin/akademik/mapel' },
-      { label: 'Jadwal', href: '/admin/akademik/jadwal' },
-      { label: 'Absensi', href: '/admin/akademik/absensi' },
-      { label: 'Pelanggaran', href: '/admin/akademik/pelanggaran' },
-    ],
-  },
-  {
-    label: 'Ujian / CBT',
-    children: [
-      { label: 'Daftar Ujian', href: '/admin/cbt/ujian' },
-      { label: 'Bank Soal', href: '/admin/cbt/bank-soal' },
-      { label: 'Konfigurasi CBT', href: '/admin/cbt/konfigurasi' },
-    ],
-  },
-  {
-    label: 'PPDB',
-    children: [
-      { label: 'Pendaftar', href: '/admin/ppdb/pendaftar' },
-      { label: 'Pengaturan PPDB', href: '/admin/ppdb/pengaturan' },
-    ],
-  },
-  {
-    label: 'CMS',
-    children: [
-      { label: 'Halaman', href: '/admin/cms/halaman' },
-      { label: 'Berita', href: '/admin/cms/berita' },
-      { label: 'Galeri', href: '/admin/cms/galeri' },
-      { label: 'Pengumuman', href: '/admin/cms/pengumuman' },
-      { label: 'Menu', href: '/admin/cms/menu' },
-    ],
-  },
-  {
-    label: 'Pengguna & Hak',
-    children: [
-      { label: 'Pengguna', href: '/admin/pengguna' },
-      { label: 'Role', href: '/admin/role' },
-      { label: 'Permission', href: '/admin/permission' },
-    ],
-  },
-  {
-    label: 'Sistem',
-    children: [
-      { label: 'Pengaturan', href: '/admin/sistem/pengaturan' },
-      { label: 'Branding', href: '/admin/sistem/branding' },
-      { label: 'SMTP', href: '/admin/sistem/smtp' },
-      { label: 'WhatsApp', href: '/admin/sistem/whatsapp' },
-      { label: 'Pembayaran', href: '/admin/sistem/pembayaran' },
-      { label: 'Audit Log', href: '/admin/sistem/audit' },
-      { label: 'Health Check', href: '/admin/sistem/health' },
-    ],
-  },
-];
-
-export function AdminShell({
-  principal,
-  children,
-}: {
-  principal: { userId: string; roleCodes: ReadonlyArray<string> };
+interface ShellProps {
+  catalogue: NavCatalogue;
+  user: {
+    fullName: string;
+    avatarUrl: string | null;
+    roleCodes: ReadonlyArray<string>;
+  };
   children: React.ReactNode;
-}) {
+}
+
+const PORTAL_ACCENTS: Record<NavCatalogue['portal'], string> = {
+  siswa: 'from-emerald-500 to-emerald-700',
+  orangtua: 'from-amber-500 to-amber-700',
+  guru: 'from-sky-500 to-sky-700',
+  admin: 'from-brand-500 to-brand-700',
+};
+
+export function PortalShell({ catalogue, user, children }: ShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  const accent = PORTAL_ACCENTS[catalogue.portal];
 
   const onLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
   };
+
+  const initials = user.fullName
+    .split(' ')
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
@@ -104,8 +54,8 @@ export function AdminShell({
       >
         <div className="flex h-14 items-center justify-between px-4">
           <Link
-            href="/admin"
-            className="text-base font-semibold text-brand-700 dark:text-brand-400"
+            href={catalogue.groups[0]?.items[0]?.href ?? '/'}
+            className={`bg-gradient-to-r ${accent} bg-clip-text text-base font-semibold text-transparent`}
           >
             {collapsed ? 'SK' : 'SIAKAD'}
           </Link>
@@ -119,7 +69,7 @@ export function AdminShell({
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto px-2 pb-4">
-          {MENU.map((group) => (
+          {catalogue.groups.map((group) => (
             <div key={group.label} className="mt-4">
               {!collapsed && (
                 <p className="px-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -127,8 +77,10 @@ export function AdminShell({
                 </p>
               )}
               <ul className="mt-1">
-                {group.children.map((item) => {
-                  const active = pathname === item.href;
+                {group.items.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    (item.href !== '/' && pathname?.startsWith(item.href + '/'));
                   return (
                     <li key={item.href}>
                       <Link
@@ -154,12 +106,10 @@ export function AdminShell({
         className={`flex flex-1 flex-col transition-[margin] ${collapsed ? 'md:ml-16' : 'md:ml-64'}`}
       >
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-          <p className="text-sm text-slate-500">
-            Login sebagai{' '}
-            <span className="font-medium text-slate-900 dark:text-slate-100">
-              {principal.roleCodes.join(', ') || 'pengguna'}
-            </span>
-          </p>
+          <div className="text-sm">
+            <p className="font-medium text-slate-900 dark:text-slate-100">{catalogue.title}</p>
+            {catalogue.subtitle && <p className="text-xs text-slate-500">{catalogue.subtitle}</p>}
+          </div>
           <div className="flex items-center gap-2">
             <select
               aria-label="Tema"
@@ -173,9 +123,20 @@ export function AdminShell({
             </select>
             <Link
               href="/akun/profil"
-              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:border-brand-400 dark:border-slate-700 dark:bg-slate-900"
+              className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm hover:border-brand-400 dark:border-slate-700 dark:bg-slate-900"
+              aria-label="Profil saya"
             >
-              Profil Saya
+              {user.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+              ) : (
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${accent} text-xs font-semibold text-white`}
+                >
+                  {initials || 'U'}
+                </span>
+              )}
+              <span className="hidden max-w-[10rem] truncate sm:block">{user.fullName}</span>
             </Link>
             <Button variant="outline" size="sm" onClick={onLogout}>
               Keluar

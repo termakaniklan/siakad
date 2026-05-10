@@ -54,7 +54,7 @@ logs/
 
 # uploads / generated
 public/uploads/
-storage/
+/storage/
 
 # docker
 docker/data/
