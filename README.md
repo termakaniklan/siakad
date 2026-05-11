@@ -621,7 +621,7 @@ cp .env.example .env
 $EDITOR .env                # lihat §8 — wajib set AUTH_*_SECRET, CAPTCHA_HMAC_SECRET, MAIL_*
 bun install --frozen-lockfile
 bun run prisma:generate
-bun run build
+bun run build                # = next build + copy public/ & .next/static ke .next/standalone/
 
 # E. Provisi database (sebagai root MariaDB di terminal terpisah)
 sudo mariadb -u root <<'SQL'
@@ -639,6 +639,13 @@ bun run db:seed
 ```
 
 ### 7.2 Menjalankan sebagai service systemd
+
+> **Catatan tentang output `standalone`**: `bun run build` kini otomatis
+> menyalin `public/` dan `.next/static/` ke `.next/standalone/` (lewat skrip
+> `scripts/copy-standalone-assets.mjs` yang dijalankan sebagai `postbuild`).
+> Tanpa langkah ini, server standalone akan merespon **404 untuk seluruh JS,
+> CSS, font, dan gambar publik** — pastikan deploy Anda selalu lewat
+> `bun run build` (bukan langsung `next build`).
 
 Buat unit file `/etc/systemd/system/siakad.service`:
 
