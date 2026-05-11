@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '22.12.0'
+  BUN_VERSION: '1.3.13'
   # Build-time placeholder; runtime URL is supplied via secrets in deployment env.
   DATABASE_URL: 'mysql://siakad:siakad@localhost:3306/siakad'
   AUTH_SESSION_SECRET: 'placeholder_session_secret_for_ci_only_change_in_prod'
@@ -23,37 +23,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - run: npm ci --no-audit --no-fund
-      - run: npx prisma generate
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bunx prisma generate
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bun run typecheck
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - run: npm ci --no-audit --no-fund
-      - run: npx prisma generate
-      - run: npm test --silent
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bunx prisma generate
+      - run: bun run test
 
   build:
     runs-on: ubuntu-latest
     needs: [lint-and-typecheck]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - run: npm ci --no-audit --no-fund
-      - run: npx prisma generate
-      - run: npm run build
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bunx prisma generate
+      - run: bun run build

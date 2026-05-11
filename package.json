@@ -14,11 +14,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:seed-demo": "tsx prisma/seed.ts && tsx prisma/seed-demo.ts",
+    "db:seed": "bun prisma/seed.ts",
+    "db:seed-demo": "bun prisma/seed.ts && bun prisma/seed-demo.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
-    "queue:worker": "tsx src/shared/queue/worker.ts"
+    "queue:worker": "bun src/shared/queue/worker.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.8.0",
@@ -61,11 +61,15 @@
     "prettier-plugin-tailwindcss": "^0.6.8",
     "prisma": "7.8.0",
     "tailwindcss": "^3.4.14",
-    "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.3"
   },
   "engines": {
+    "bun": ">=1.1.0",
     "node": ">=20.10.0"
-  }
+  },
+  "packageManager": "bun@1.3.13",
+  "trustedDependencies": [
+    "unrs-resolver"
+  ]
 }

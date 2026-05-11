@@ -25,6 +25,7 @@ export default defineConfig({
     url: process.env.DATABASE_URL ?? '',
   },
   migrations: {
-    seed: 'tsx prisma/seed.ts',
+    // Bun menjalankan file TypeScript secara native; tidak butuh tsx/ts-node.
+    seed: 'bun prisma/seed.ts',
   },
 });

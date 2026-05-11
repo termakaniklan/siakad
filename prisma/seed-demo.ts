@@ -11,8 +11,9 @@
  * If a hero/gallery image is missing, the seeder falls back to a placeholder URL
  * so the demo is still usable without pre-generated assets.
  *
- * Run AFTER `tsx prisma/seed.ts`:
- *   tsx prisma/seed-demo.ts
+ * Run AFTER `bun prisma/seed.ts`:
+ *   bun prisma/seed-demo.ts
+ * Atau sekaligus via skrip npm-style: `bun run db:seed-demo`.
  */
 import fs from 'node:fs';
 import path from 'node:path';

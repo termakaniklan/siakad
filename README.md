@@ -4,6 +4,7 @@
 
 **Runtime & framework**
 
+[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.1-FBF0DF?logo=bun&logoColor=000)](https://bun.sh)
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A520.10-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=000)](https://react.dev)
@@ -92,7 +93,7 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 ## Screenshots
 
 > Tangkapan layar berikut diambil dari aplikasi yang berjalan lokal dengan data demo
-> (`npm run db:seed-demo`).
+> (`bun run db:seed-demo`).
 
 ### Halaman Depan (Homepage)
 
@@ -121,7 +122,7 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 ### Portal Orang Tua / Wali
 
 > Login sebagai `ortu001 / OrangTua!2026` (akun demo dibuat otomatis oleh
-> `npm run db:seed-demo`, satu akun orang tua per siswa, total 120 akun).
+> `bun run db:seed-demo`, satu akun orang tua per siswa, total 120 akun).
 
 |        Dashboard — anak, kehadiran 14 hari, ujian mendatang        |                          Ujian & Pengumuman                          |
 | :----------------------------------------------------------------: | :------------------------------------------------------------------: |
@@ -371,25 +372,29 @@ Semua versi mengacu pada `package.json` di repo ini.
 
 ### 4.3 DevDependencies
 
-| Paket                              | Versi   | Fungsi                                          |
-| ---------------------------------- | ------- | ----------------------------------------------- |
-| `typescript`                       | ^5.6.3  | Type-checker (`tsc --noEmit`)                   |
-| `@types/node`                      | ^22.7.5 | Tipe Node.js                                    |
-| `@types/react`, `@types/react-dom` | ^19.0.0 | Tipe React 19                                   |
-| `eslint`, `eslint-config-next`     | ^9.13.0 | Linter (Next.js + TypeScript-aware)             |
-| `prettier`                         | ^3.3.3  | Formatter kode + Markdown                       |
-| `tsx`                              | ^4.19.1 | Eksekusi TypeScript untuk seeder & queue worker |
-| `vitest`                           | ^2.1.3  | Unit & integration tests (jsdom + node env)     |
+| Paket                              | Versi   | Fungsi                                      |
+| ---------------------------------- | ------- | ------------------------------------------- |
+| `typescript`                       | ^5.6.3  | Type-checker (`tsc --noEmit`)               |
+| `@types/node`                      | ^22.7.5 | Tipe Node.js                                |
+| `@types/react`, `@types/react-dom` | ^19.0.0 | Tipe React 19                               |
+| `eslint`, `eslint-config-next`     | ^9.13.0 | Linter (Next.js + TypeScript-aware)         |
+| `prettier`                         | ^3.3.3  | Formatter kode + Markdown                   |
+| `vitest`                           | ^2.1.3  | Unit & integration tests (jsdom + node env) |
 
-### 4.4 Infrastruktur (di luar npm)
+> **Catatan:** sebelumnya project memakai `tsx` untuk menjalankan seeder &
+> worker. Setelah migrasi ke Bun, paket ini dihapus — **Bun menjalankan file
+> `.ts` secara native** (mis. `bun prisma/seed.ts`).
 
-| Komponen | Versi             | Catatan                                                                      |
-| -------- | ----------------- | ---------------------------------------------------------------------------- |
-| Node.js  | ≥ 20.10 (rec. 22) | Runtime aplikasi & worker                                                    |
-| MariaDB  | 11.x              | Database utama (port 3306)                                                   |
-| Redis    | 7.x               | Cache + queue + rate-limit (port 6379)                                       |
-| systemd  | bawaan distro     | Mengelola service `siakad` & `siakad-worker` di produksi (lihat §7.1)        |
-| Nginx    | 1.24+             | Reverse proxy + TLS termination + rate-limit zone (opsional di pengembangan) |
+### 4.4 Infrastruktur (di luar paket Bun)
+
+| Komponen | Versi             | Catatan                                                                       |
+| -------- | ----------------- | ----------------------------------------------------------------------------- |
+| Bun      | ≥ 1.1 (rec. 1.3+) | Package manager + runtime (mengganti npm/Node untuk install & menjalankan TS) |
+| Node.js  | ≥ 20.10 (rec. 22) | Tetap dibutuhkan untuk runtime Next.js standalone (`node server.js`)          |
+| MariaDB  | 11.x              | Database utama (port 3306)                                                    |
+| Redis    | 7.x               | Cache + queue + rate-limit (port 6379)                                        |
+| systemd  | bawaan distro     | Mengelola service `siakad` & `siakad-worker` di produksi (lihat §7.1)         |
+| Nginx    | 1.24+             | Reverse proxy + TLS termination + rate-limit zone (opsional di pengembangan)  |
 
 ### 4.5 GitHub Actions / CI
 
@@ -398,21 +403,30 @@ Semua versi mengacu pada `package.json` di repo ini.
 | `.github/workflows/ci.yml`     | install → `prisma generate` → `format:check` → `lint` → `typecheck` → `vitest run` → `next build` |
 | `.github/workflows/codeql.yml` | CodeQL static analysis (JavaScript/TypeScript)                                                    |
 
-### 4.6 Skrip npm
+### 4.6 Skrip Bun
+
+Semua skrip dijalankan via `bun run <nama>` (sebelumnya `npm run …`).
 
 | Skrip                                                                          | Tujuan                                                                               |
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `npm run dev`                                                                  | Mode development (hot reload)                                                        |
-| `npm run build`                                                                | Build produksi (standalone)                                                          |
-| `npm run start`                                                                | Jalankan build produksi                                                              |
-| `npm run lint`                                                                 | ESLint                                                                               |
-| `npm run typecheck`                                                            | `tsc --noEmit`                                                                       |
-| `npm run test`                                                                 | Vitest run                                                                           |
-| `npm run format`                                                               | Prettier write                                                                       |
-| `npm run prisma:generate` / `npm run prisma:migrate` / `npm run prisma:deploy` | Tools Prisma                                                                         |
-| `npm run db:seed`                                                              | Seed minimal (RBAC + akun super admin)                                               |
-| `npm run db:seed-demo`                                                         | Seed minimal **+** dummy demo (siswa, guru, kelas, ujian, berita, galeri, orang tua) |
-| `npm run queue:worker`                                                         | Worker BullMQ untuk notifikasi & job background                                      |
+| `bun run dev`                                                                  | Mode development (hot reload)                                                        |
+| `bun run build`                                                                | Build produksi (standalone)                                                          |
+| `bun run start`                                                                | Jalankan build produksi                                                              |
+| `bun run lint`                                                                 | ESLint                                                                               |
+| `bun run typecheck`                                                            | `tsc --noEmit`                                                                       |
+| `bun run test`                                                                 | Vitest run                                                                           |
+| `bun run format`                                                               | Prettier write                                                                       |
+| `bun run prisma:generate` / `bun run prisma:migrate` / `bun run prisma:deploy` | Tools Prisma                                                                         |
+| `bun run db:seed`                                                              | Seed minimal (RBAC + akun super admin)                                               |
+| `bun run db:seed-demo`                                                         | Seed minimal **+** dummy demo (siswa, guru, kelas, ujian, berita, galeri, orang tua) |
+| `bun run queue:worker`                                                         | Worker BullMQ untuk notifikasi & job background                                      |
+
+> Anda juga dapat memanggil binary langsung: `bunx prisma migrate dev`,
+> `bun prisma/seed.ts`, dst.
+>
+> **Hindari `bun test`** (tanpa `run`) — Bun akan menjalankan _test runner_-nya
+> sendiri. Project ini memakai Vitest, jadi pakai `bun run test` agar skrip
+> `package.json` yang dieksekusi (`vitest run`).
 
 ## 5. Persyaratan Server
 
@@ -447,15 +461,23 @@ tambahan: satu server, satu set service.
 
 | Komponen | Versi minimum     | Cara cek                                    |
 | -------- | ----------------- | ------------------------------------------- |
-| Node.js  | 20.10 (rek. 22.x) | `node -v`                                   |
-| npm      | 10.x              | `npm -v`                                    |
+| Bun      | 1.1 (rek. 1.3+)   | `bun --version`                             |
+| Node.js  | 20.10 (rek. 22.x) | `node -v` (dipakai Next.js standalone)      |
 | MariaDB  | 11.x              | `mariadbd --version` atau `mysql --version` |
 | Redis    | 7.x               | `redis-server --version`                    |
 | git      | 2.40+             | `git --version`                             |
 
-> **Tips Node**: pasang via [Volta](https://volta.sh) (`volta install node@22`) atau
-> [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22 && nvm use 22`). Hindari
-> Node bawaan distro yang sering tertinggal.
+> **Tips Bun**: instal sekali pakai installer resmi:
+>
+> ```bash
+> curl -fsSL https://bun.sh/install | bash
+> source ~/.bashrc            # atau buka shell baru
+> ```
+>
+> Bun bundling install + run + bundler + test runner; tidak butuh `npm`, `npx`,
+> atau `tsx`. Untuk Node (dipakai oleh Next.js standalone di produksi) pasang
+> via [Volta](https://volta.sh) (`volta install node@22`) atau
+> [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22 && nvm use 22`).
 
 ### 6.2 Instal MariaDB &amp; Redis langsung di host
 
@@ -534,27 +556,27 @@ redis-cli ping       # → PONG
 git clone https://github.com/termakaniklan/siakad.git
 cd siakad
 
-# 2. Pasang dependency aplikasi
-npm ci
+# 2. Pasang dependency aplikasi (membaca bun.lock; reproducible)
+bun install --frozen-lockfile
 
 # 3. Salin .env contoh, lalu sesuaikan DATABASE_URL / secret di editor
 cp .env.example .env
 $EDITOR .env        # set AUTH_*_SECRET dengan: openssl rand -base64 48
 
 # 4. Generate Prisma client + apply migrasi
-npm run prisma:generate
-npm run prisma:deploy        # = prisma migrate deploy (idempotent)
+bun run prisma:generate
+bun run prisma:deploy        # = prisma migrate deploy (idempotent)
 
 # 5. Seed data awal (RBAC + akun super admin)
-npm run db:seed
+bun run db:seed
 # ATAU langsung dengan dummy demo (~120 siswa / 18 guru / 120 ortu / 6 kelas / 5 ujian)
-npm run db:seed-demo
+bun run db:seed-demo
 
 # 6. Jalankan dev server
-npm run dev          # → http://localhost:3000
+bun run dev          # → http://localhost:3000
 
 # 7. (Opsional) Worker BullMQ di terminal terpisah
-npm run queue:worker
+bun run queue:worker
 ```
 
 **Akun super admin default** (dari seeder): `superadmin / ChangeMe!2026`
@@ -565,20 +587,21 @@ Akun demo lain dari `db:seed-demo`: `siswa001 / Siswa!2026`,
 ## 7. Instalasi Produksi (Baremetal)
 
 Asumsi Ubuntu 22.04 LTS / Debian 12 dengan 1 server (VPS / bare-metal / VM).
-Setup ini menjalankan semua komponen langsung di host: Node.js untuk aplikasi
-dan worker, MariaDB untuk data, Redis untuk cache/queue, Nginx untuk reverse
-proxy + TLS, dan systemd untuk supervisi.
+Setup ini menjalankan semua komponen langsung di host: Bun sebagai package
+manager + runtime worker, Node.js untuk menjalankan output Next.js standalone,
+MariaDB untuk data, Redis untuk cache/queue, Nginx untuk reverse proxy + TLS,
+dan systemd untuk supervisi.
 
 ### 7.1 Langkah singkat
 
 ```bash
 # A. Pasang prasyarat OS (lihat §6.2 untuk distro lain)
 sudo apt-get update
-sudo apt-get install -y mariadb-server mariadb-client redis-server nginx git curl
+sudo apt-get install -y mariadb-server mariadb-client redis-server nginx git curl unzip
 sudo systemctl enable --now mariadb redis-server nginx
 sudo mariadb-secure-installation
 
-# Node 22 via Nodesource
+# Node 22 via Nodesource (untuk runtime Next.js standalone di production)
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
@@ -586,16 +609,21 @@ sudo apt-get install -y nodejs
 sudo useradd --system --create-home --shell /bin/bash siakad
 sudo -iu siakad
 
-# C. Clone & build (sebagai user siakad)
+# C. Pasang Bun untuk user `siakad`
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc            # menambah ~/.bun/bin ke PATH
+bun --version               # konfirmasi terpasang
+
+# D. Clone & build (sebagai user siakad)
 git clone https://github.com/termakaniklan/siakad.git ~/app
 cd ~/app
 cp .env.example .env
-$EDITOR .env        # lihat §8 — wajib set AUTH_*_SECRET, CAPTCHA_HMAC_SECRET, MAIL_*
-npm ci
-npm run prisma:generate
-npm run build
+$EDITOR .env                # lihat §8 — wajib set AUTH_*_SECRET, CAPTCHA_HMAC_SECRET, MAIL_*
+bun install --frozen-lockfile
+bun run prisma:generate
+bun run build
 
-# D. Provisi database (sebagai root MariaDB di terminal terpisah)
+# E. Provisi database (sebagai root MariaDB di terminal terpisah)
 sudo mariadb -u root <<'SQL'
 CREATE DATABASE siakad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'siakad'@'localhost' IDENTIFIED BY 'GANTI_PASSWORD_KUAT';
@@ -604,10 +632,10 @@ FLUSH PRIVILEGES;
 SQL
 # (Jangan lupa sinkronkan password ini dengan DATABASE_URL di /home/siakad/app/.env)
 
-# E. Apply migrasi + seed awal
+# F. Apply migrasi + seed awal
 cd ~/app
-npm run prisma:deploy
-npm run db:seed
+bun run prisma:deploy
+bun run db:seed
 ```
 
 ### 7.2 Menjalankan sebagai service systemd
@@ -652,7 +680,7 @@ User=siakad
 Group=siakad
 WorkingDirectory=/home/siakad/app
 EnvironmentFile=/home/siakad/app/.env
-ExecStart=/usr/bin/npx tsx src/shared/queue/worker.ts
+ExecStart=/home/siakad/.bun/bin/bun /home/siakad/app/src/shared/queue/worker.ts
 Restart=on-failure
 RestartSec=5
 
@@ -669,9 +697,9 @@ sudo systemctl status siakad
 journalctl -u siakad -f       # tail log
 ```
 
-> **Alternatif PM2**: bila lebih familiar, `npm i -g pm2` lalu
-> `pm2 start ".next/standalone/server.js" --name siakad` dan
-> `pm2 start "npx tsx src/shared/queue/worker.ts" --name siakad-worker`,
+> **Alternatif PM2**: bila lebih familiar, `bun add -g pm2` lalu
+> `pm2 start ".next/standalone/server.js" --name siakad --interpreter node` dan
+> `pm2 start "src/shared/queue/worker.ts" --name siakad-worker --interpreter ~/.bun/bin/bun`,
 > akhiri dengan `pm2 save && pm2 startup`.
 
 ### 7.3 Nginx sebagai reverse proxy + TLS
@@ -694,10 +722,10 @@ Saat ada rilis baru, lakukan sebagai user `siakad`:
 ```bash
 cd ~/app
 git pull
-npm ci
-npm run prisma:generate
-npm run prisma:deploy       # migrasi baru, idempotent
-npm run build
+bun install --frozen-lockfile
+bun run prisma:generate
+bun run prisma:deploy       # migrasi baru, idempotent
+bun run build
 sudo systemctl restart siakad siakad-worker
 ```
 
@@ -745,15 +773,15 @@ Salinan `.env.example` selalu sinkron — gunakan sebagai referensi otoritatif.
 
 ```bash
 # Migrasi pengembangan
-npm run prisma:migrate            # menjalankan prisma migrate dev
+bun run prisma:migrate            # menjalankan prisma migrate dev
 # Migrasi produksi (idempotent)
-npm run prisma:deploy
+bun run prisma:deploy
 
 # Seeder baseline (RBAC, super-admin, sample wilayah)
-npm run db:seed
+bun run db:seed
 
 # Seeder demo lengkap (60+ entitas; idempotent)
-npm run db:seed-demo
+bun run db:seed-demo
 ```
 
 Seeder baseline (`prisma/seed.ts`) memastikan:
@@ -967,9 +995,9 @@ Untuk migrasi:
 # PostgreSQL
 # 1. Ubah prisma/schema.prisma datasource.provider menjadi "postgresql"
 # 2. Update DATABASE_URL → postgresql://user:pass@host:5432/db
-# 3. Pasang adapter:    npm i @prisma/adapter-pg pg
+# 3. Pasang adapter:    bun add @prisma/adapter-pg pg
 # 4. Update src/shared/db/prisma.ts → gunakan PrismaPg adapter
-# 5. npx prisma migrate dev
+# 5. bunx prisma migrate dev
 ```
 
 Contoh adapter swap ada pada komentar di `src/shared/db/prisma.ts`. MSSQL & Oracle
@@ -1005,7 +1033,7 @@ GitHub Actions workflow tersedia di:
 Jalankan lokal sebelum push:
 
 ```bash
-npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
+bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build
 ```
 
 ### Testing
@@ -1018,8 +1046,8 @@ npm run format:check && npm run lint && npm run typecheck && npm test && npm run
 | Lighthouse | `lhci`                                       | siapkan workflow tambahan saat go-live                       |
 
 ```bash
-npm test            # one-shot
-npm run test:watch  # watch mode
+bun run test            # one-shot (vitest)
+bun run test:watch      # watch mode
 ```
 
 ### Observability
@@ -1066,7 +1094,7 @@ Tab-switch terhitung saat fokus berpindah (alert OS, ekstensi popup). Atur
   bergantung pada Redis. Pasang baremetal lewat `apt install redis-server`
   (Debian/Ubuntu) atau `brew install redis` (macOS). Lihat §6.2.
 - **Q:** Bagaimana mendaftarkan VAPID untuk push notif?
-  **A:** Generate key (`npx web-push generate-vapid-keys`), simpan ke `.env`, lalu
+  **A:** Generate key (`bunx web-push generate-vapid-keys`), simpan ke `.env`, lalu
   daftarkan endpoint di service worker (slot tersedia).
 - **Q:** Apakah aman dipakai di sekolah negeri?
   **A:** Ya — desain mengikuti UU PDP (data minimization, audit log, hak akses
@@ -1076,7 +1104,7 @@ Tab-switch terhitung saat fokus berpindah (alert OS, ekstensi popup). Atur
 
 - **Lisensi**: MIT (lihat [`LICENSE`](LICENSE)).
 - **Code style**: Prettier + ESLint (next/core-web-vitals).
-  Jalankan `npm run format` sebelum commit.
+  Jalankan `bun run format` sebelum commit.
 - **Commit**: gunakan [Conventional Commits](https://www.conventionalcommits.org/).
 - **Pull request**: jelaskan _why_ (bukan hanya _what_), lampirkan screenshot UI,
   dan pastikan CI hijau.
