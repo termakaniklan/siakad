@@ -23,4 +23,7 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          # JS/TS: analisis source code langsung tanpa autobuild
+          # (project pakai Bun; tidak ada npm/yarn lockfile yang dipakai autobuild).
+          build-mode: 'none'
       - uses: github/codeql-action/analyze@v3

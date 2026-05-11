@@ -22,11 +22,17 @@ next-env.d.ts
 *.local
 .vercel
 
+# lockfiles dari package manager lain (project pakai Bun -> commit `bun.lock` saja)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+bun-debug.log*
 
 # typescript
 *.tsbuildinfo

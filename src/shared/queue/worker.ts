@@ -8,7 +8,7 @@ import { QUEUES } from '@/shared/queue';
 import { handleNotificationJob } from '@/modules/notification/job-handler';
 
 /**
- * Standalone worker process (run with `npm run queue:worker`).
+ * Standalone worker process (run with `bun run queue:worker`).
  *
  * In production: run as a sibling container of the web app, behind the same Redis.
  * Multiple worker replicas are safe — BullMQ dispatch is locked per job.
