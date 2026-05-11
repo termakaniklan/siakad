@@ -1,6 +1,6 @@
 # SIAKAD — Sistem Informasi Akademik Sekolah (PWA)
 
-<!-- Tech stack & versi terpasang. Versi diambil dari `package.json`, `docker-compose.yml`, dan field `engines`. -->
+<!-- Tech stack & versi terpasang. Versi diambil dari `package.json` dan field `engines`. -->
 
 **Runtime & framework**
 
@@ -44,9 +44,8 @@
 [![Vitest](https://img.shields.io/badge/Vitest-2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev)
 [![ESLint](https://img.shields.io/badge/ESLint-9-4B32C3?logo=eslint&logoColor=white)](https://eslint.org)
 [![Prettier](https://img.shields.io/badge/Prettier-3-F7B93E?logo=prettier&logoColor=000)](https://prettier.io)
-[![Docker](https://img.shields.io/badge/Docker-multistage-2496ED?logo=docker&logoColor=white)](Dockerfile)
-[![Docker Compose](https://img.shields.io/badge/Docker%20Compose-app%20%2B%20worker%20%2B%20db%20%2B%20redis%20%2B%20nginx-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
-[![Nginx](https://img.shields.io/badge/Nginx-1.27-009639?logo=nginx&logoColor=white)](deploy/nginx/nginx.conf)
+[![systemd](https://img.shields.io/badge/systemd-service%20unit-30D475?logo=linux&logoColor=white)](#71-jalankan-sebagai-service-systemd)
+[![Nginx](https://img.shields.io/badge/Nginx-1.24%2B-009639?logo=nginx&logoColor=white)](deploy/nginx/nginx.conf)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%20%2B%20CodeQL-2088FF?logo=githubactions&logoColor=white)](.github/workflows)
 
 **Status repo**
@@ -76,7 +75,7 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 4. [Stack Teknologi](#4-stack-teknologi)
 5. [Persyaratan Server](#5-persyaratan-server)
 6. [Instalasi (Pengembangan)](#6-instalasi-pengembangan)
-7. [Instalasi Produksi (Baremetal &amp; Docker)](#7-instalasi-produksi-baremetal--docker)
+7. [Instalasi Produksi (Baremetal)](#7-instalasi-produksi-baremetal)
 8. [Konfigurasi `.env`](#8-konfigurasi-env)
 9. [Migrasi & Seeder Database](#9-migrasi--seeder-database)
 10. [Skema Database (ERD Ringkas)](#10-skema-database-erd-ringkas)
@@ -310,7 +309,7 @@ src/
 | State       | TanStack Query 5 (server cache) + Zustand 5 (UI state)                                   |
 | Testing     | Vitest (unit + integration), Playwright config (E2E), Lighthouse CI siap diaktifkan      |
 | CI          | GitHub Actions (`ci.yml`, `codeql.yml`)                                                  |
-| Container   | Multi-stage Dockerfile + docker-compose (app, worker, mariadb, redis, nginx)             |
+| Deployment  | Baremetal/monolith: Node + systemd + Nginx (reverse proxy + TLS)                         |
 
 ### 4.2 Dependencies (Aplikasi)
 
@@ -384,14 +383,13 @@ Semua versi mengacu pada `package.json` di repo ini.
 
 ### 4.4 Infrastruktur (di luar npm)
 
-| Komponen       | Versi             | Catatan                                                                      |
-| -------------- | ----------------- | ---------------------------------------------------------------------------- |
-| Node.js        | ≥ 20.10 (rec. 22) | Runtime aplikasi & worker; mode utama = baremetal/monolith                   |
-| MariaDB        | 11.4              | Database utama (port 3306 baik di baremetal maupun docker-compose)           |
-| Redis          | 7                 | Cache + queue + rate-limit (port 6379)                                       |
-| Nginx          | 1.24+             | Reverse proxy + TLS termination + rate-limit zone (opsional di pengembangan) |
-| Docker         | ≥ 24              | **Opsional**, hanya untuk jalur Docker Compose (§7.2)                        |
-| docker-compose | v2 plugin         | **Opsional**, hanya untuk jalur Docker Compose (§7.2)                        |
+| Komponen | Versi             | Catatan                                                                      |
+| -------- | ----------------- | ---------------------------------------------------------------------------- |
+| Node.js  | ≥ 20.10 (rec. 22) | Runtime aplikasi & worker                                                    |
+| MariaDB  | 11.x              | Database utama (port 3306)                                                   |
+| Redis    | 7.x               | Cache + queue + rate-limit (port 6379)                                       |
+| systemd  | bawaan distro     | Mengelola service `siakad` & `siakad-worker` di produksi (lihat §7.1)        |
+| Nginx    | 1.24+             | Reverse proxy + TLS termination + rate-limit zone (opsional di pengembangan) |
 
 ### 4.5 GitHub Actions / CI
 
@@ -442,8 +440,8 @@ Semua versi mengacu pada `package.json` di repo ini.
 ## 6. Instalasi (Pengembangan)
 
 SIAKAD dijalankan sebagai **monolith baremetal** — semua komponen (Node, MariaDB,
-Redis) berjalan langsung di OS host tanpa Docker. Jalur Docker Compose dijelaskan
-terpisah di §7.2.
+Redis) berjalan langsung di OS host. Tidak ada container, tidak ada orkestrasi
+tambahan: satu server, satu set service.
 
 ### 6.1 Prasyarat
 
@@ -529,9 +527,6 @@ mysql -u siakad -psiakad -h 127.0.0.1 siakad -e "SELECT 1;"
 redis-cli ping       # → PONG
 ```
 
-> Tersedia helper opsional: `bash scripts/setup-baremetal.sh` — script ini hanya
-> wrapper untuk SQL di atas + `npm ci` + `prisma migrate deploy` + `db:seed-demo`.
-
 ### 6.4 Bootstrap aplikasi
 
 ```bash
@@ -567,17 +562,14 @@ npm run queue:worker
 Akun demo lain dari `db:seed-demo`: `siswa001 / Siswa!2026`,
 `guru01 / Guru!2026`, `ortu001 / OrangTua!2026`.
 
-## 7. Instalasi Produksi (Baremetal &amp; Docker)
+## 7. Instalasi Produksi (Baremetal)
 
-Pilih salah satu — keduanya didukung. **Mode default = baremetal/monolith**;
-Docker Compose disediakan sebagai alternatif praktis.
+Asumsi Ubuntu 22.04 LTS / Debian 12 dengan 1 server (VPS / bare-metal / VM).
+Setup ini menjalankan semua komponen langsung di host: Node.js untuk aplikasi
+dan worker, MariaDB untuk data, Redis untuk cache/queue, Nginx untuk reverse
+proxy + TLS, dan systemd untuk supervisi.
 
-### 7.1 Produksi Baremetal / Monolith (rekomendasi)
-
-Cocok bila Anda punya 1 server (VPS / bare-metal / VM) dan ingin menghindari
-overhead Docker. Asumsi Ubuntu 22.04 LTS / Debian 12.
-
-#### Langkah singkat
+### 7.1 Langkah singkat
 
 ```bash
 # A. Pasang prasyarat OS (lihat §6.2 untuk distro lain)
@@ -618,7 +610,7 @@ npm run prisma:deploy
 npm run db:seed
 ```
 
-#### Menjalankan sebagai service systemd
+### 7.2 Menjalankan sebagai service systemd
 
 Buat unit file `/etc/systemd/system/siakad.service`:
 
@@ -682,7 +674,7 @@ journalctl -u siakad -f       # tail log
 > `pm2 start "npx tsx src/shared/queue/worker.ts" --name siakad-worker`,
 > akhiri dengan `pm2 save && pm2 startup`.
 
-#### Nginx sebagai reverse proxy + TLS
+### 7.3 Nginx sebagai reverse proxy + TLS
 
 Salin contoh konfigurasi yang sudah disediakan di `deploy/nginx/conf.d/default.conf`
 ke `/etc/nginx/sites-available/siakad.conf`, sesuaikan `server_name` dan path
@@ -695,89 +687,22 @@ sudo nginx -t && sudo systemctl reload nginx
 
 Selesai — buka `https://siakad.sekolahanda.sch.id`.
 
-### 7.2 Produksi via Docker Compose (alternatif)
+### 7.4 Update aplikasi
 
-Cocok bila Anda **tidak mau menyentuh OS** sama sekali — semua komponen
-ter-encapsulate di container. Stack: `app` + `worker` + `mariadb` + `redis` +
-`nginx`. **Hanya `.env` yang perlu Anda ubah**, sisanya sudah otomatis.
-
-#### Prasyarat
-
-- Docker Engine ≥ 24
-- Docker Compose v2 plugin (`docker compose version`)
-
-#### Langkah
+Saat ada rilis baru, lakukan sebagai user `siakad`:
 
 ```bash
-# 1. Clone & masuk repo
-git clone https://github.com/termakaniklan/siakad.git
-cd siakad
-
-# 2. Salin .env contoh & sesuaikan
-cp .env.example .env
-$EDITOR .env
-
-# 3. Build + jalankan stack lengkap (idempotent)
-docker compose up -d --build
-
-# 4. Apply migrasi DB + seed awal (jalankan satu kali setelah container hidup)
-docker compose exec app npx prisma migrate deploy
-docker compose exec app npm run db:seed     # atau: npm run db:seed-demo
-
-# 5. Buka https://your-domain
-#    Nginx (di container) menerminasi TLS — taruh cert .pem + .key di deploy/nginx/certs
+cd ~/app
+git pull
+npm ci
+npm run prisma:generate
+npm run prisma:deploy       # migrasi baru, idempotent
+npm run build
+sudo systemctl restart siakad siakad-worker
 ```
 
-Berhenti / restart:
-
-```bash
-docker compose stop                # stop tanpa hilangkan data
-docker compose down                # stop + hapus container (volume MariaDB/Redis tetap aman)
-docker compose logs -f app worker  # tail log gabungan
-```
-
-#### Variabel `.env` yang **wajib** Anda set untuk mode Docker Compose
-
-| Variabel              | Dipakai oleh               | Catatan                                               |
-| --------------------- | -------------------------- | ----------------------------------------------------- |
-| `APP_URL`             | `app`, `worker`            | URL publik (mis. `https://siakad.sekolahanda.sch.id`) |
-| `AUTH_SESSION_SECRET` | `app`, `worker`            | `openssl rand -base64 48`                             |
-| `AUTH_JWT_SECRET`     | `app`, `worker`            | Beda dari session secret                              |
-| `CAPTCHA_HMAC_SECRET` | `app`                      | `openssl rand -base64 32`                             |
-| `DB_NAME`             | `mariadb`, `app`, `worker` | Nama database (default: `siakad`)                     |
-| `DB_USER`             | `mariadb`, `app`, `worker` | User aplikasi (default: `siakad`)                     |
-| `DB_PASSWORD`         | `mariadb`, `app`, `worker` | **Wajib diganti dari default `siakad`**               |
-| `DB_ROOT_PASSWORD`    | `mariadb`                  | Root MariaDB; backup script juga memakai ini          |
-| `MAIL_*`              | `app`, `worker`            | SMTP untuk reset password & notifikasi                |
-
-Semua variabel lain (`DATABASE_URL`, `REDIS_URL`) **otomatis dirakit** oleh
-`docker-compose.yml` dari `DB_*` di atas + nama service internal. Anda boleh
-meng-override `DATABASE_URL` di `.env` jika butuh parameter spesifik
-(mis. `?sslmode=require`).
-
-#### Layanan yang berjalan
-
-| Service   | Port (host) | Catatan                                                 |
-| --------- | ----------- | ------------------------------------------------------- |
-| `nginx`   | 80, 443     | Reverse proxy + TLS + rate-limit + security headers     |
-| `app`     | 3000        | Next.js standalone (langsung diakses kalau tanpa Nginx) |
-| `worker`  | —           | BullMQ consumer untuk notif & job latar                 |
-| `mariadb` | 3306        | Data persistent volume `mariadb_data`                   |
-| `redis`   | 6379        | Persistent volume `redis_data`                          |
-
-Lihat `docker-compose.yml`, `Dockerfile`, dan `deploy/nginx/` untuk konfigurasi rinci.
-
-#### Troubleshooting build Docker
-
-- **`Failed to load config file "/app" ... Cannot resolve environment variable: DATABASE_URL`**
-  pada langkah `RUN npx prisma generate`: sudah diperbaiki di `prisma.config.ts`
-  (membaca `process.env.DATABASE_URL ?? ''` alih-alih helper strict `env()`).
-  Pastikan Anda berada di branch `main` terbaru sebelum `docker compose build`.
-- **Healthcheck `mariadb` lama menjadi healthy**: tingkatkan `start_period` di
-  `docker-compose.yml` bila host lambat (mis. Raspberry Pi). Migrasi awal sebaiknya
-  baru dijalankan setelah `docker compose ps` menunjukkan `(healthy)`.
-- **Mengganti port host**: ubah blok `ports:` di `docker-compose.yml` (mis.
-  `"8080:80"`) lalu `docker compose up -d` ulang.
+Pertimbangkan menyiapkan satu skrip bash sederhana di server Anda (mis.
+`/usr/local/bin/siakad-deploy.sh`) berisi urutan perintah di atas.
 
 ## 8. Konfigurasi `.env`
 
@@ -1052,8 +977,6 @@ mengikuti pola serupa — gunakan adapter resmi Prisma yang relevan.
 
 ## 14. Backup & Restore
 
-### Baremetal
-
 ```bash
 # Backup MariaDB (logical, terkompres + terenkripsi)
 mariadb-dump -u root -p"$DB_ROOT_PASSWORD" --single-transaction --routines siakad \
@@ -1067,21 +990,8 @@ openssl enc -d -aes-256-cbc -pbkdf2 -in siakad-2025-01-01.sql.gz.enc \
 tar -czf storage-$(date +%F).tar.gz storage/
 ```
 
-### Docker Compose
-
-```bash
-# Backup
-docker compose exec -T mariadb mariadb-dump -u root -p"$DB_ROOT_PASSWORD" \
-  --single-transaction --routines siakad \
-  | gzip | openssl enc -aes-256-cbc -salt -pbkdf2 -out siakad-$(date +%F).sql.gz.enc
-
-# Restore
-openssl enc -d -aes-256-cbc -pbkdf2 -in siakad-2025-01-01.sql.gz.enc \
-  | gunzip | docker compose exec -T mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" siakad
-```
-
-Atur cron / systemd timer harian; rotasi backup minimal 30 hari, lakukan **restore
-drill** ke environment staging tiap bulan.
+Atur **systemd timer** harian (atau `cron`); rotasi backup minimal 30 hari,
+lakukan **restore drill** ke environment staging tiap bulan.
 
 ## 15. CI/CD, Pengujian, & Observability
 

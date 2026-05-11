@@ -19,7 +19,8 @@ export default async function HealthPage() {
         </CardHeader>
         <CardContent className="text-sm">
           Endpoint live: <code>/api/health</code>. Memeriksa konektivitas database (MariaDB) dan
-          Redis. Gunakan endpoint ini untuk health check Kubernetes/Docker liveness &amp; readiness.
+          Redis. Gunakan endpoint ini untuk liveness &amp; readiness probe (mis. systemd
+          <code>ExecStartPost</code> / load balancer health check).
         </CardContent>
       </Card>
     </div>

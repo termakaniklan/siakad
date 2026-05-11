@@ -4,7 +4,8 @@
  * Next.js configuration for SIAKAD PWA.
  *
  * Notes:
- * - Strict React + standalone output for Docker.
+ * - Strict React + standalone output (cocok untuk dijalankan via `node server.js`
+ *   atau systemd unit; lihat README §7 untuk setup baremetal).
  * - Security headers applied at edge for all responses; tightened by middleware
  *   per-route as needed (`src/shared/security/headers.ts`).
  * - PWA service worker is served from `public/sw.js` and registered manually
