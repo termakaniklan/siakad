@@ -11,9 +11,9 @@ import { defineConfig } from 'prisma/config';
  *   We read `process.env.DATABASE_URL` directly (with an empty fallback) instead of
  *   the strict `env()` helper from `prisma/config`. The helper throws at config-load
  *   time when the variable is missing, which breaks build-time codegen such as
- *   `prisma generate` inside Docker builds (no runtime env mounted there). Commands
- *   that actually contact the DB — `migrate dev`, `migrate deploy`, `db push`,
- *   `studio` — still fail loudly when the URL is empty.
+ *   `prisma generate` in CI/sandbox environments where the runtime DB URL is not
+ *   yet available. Commands that actually contact the DB — `migrate dev`,
+ *   `migrate deploy`, `db push`, `studio` — still fail loudly when the URL is empty.
  *
  * Multi-database migration:
  *   - Switch the `provider` in `prisma/schema.prisma` to `postgresql`, `sqlserver`, or
