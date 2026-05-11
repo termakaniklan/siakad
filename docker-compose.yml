@@ -1,7 +1,17 @@
-# Production-grade local stack for SIAKAD.
-# Usage:
-#   cp .env.example .env   # then edit values
-#   docker compose up -d
+# Docker Compose stack untuk SIAKAD (ALTERNATIF; mode utama = baremetal/monolith).
+#
+# Cara pakai (yang perlu Anda sentuh hanya .env):
+#   1. cp .env.example .env
+#   2. edit .env: minimal AUTH_*_SECRET, CAPTCHA_HMAC_SECRET, DB_PASSWORD, APP_URL, MAIL_*
+#   3. docker compose up -d --build
+#   4. docker compose exec app npx prisma migrate deploy
+#   5. docker compose exec app npm run db:seed   # atau db:seed-demo
+#
+# Variabel DB_USER / DB_PASSWORD / DB_NAME / DB_ROOT_PASSWORD diambil otomatis
+# dari .env (lihat .env.example). DATABASE_URL dan REDIS_URL untuk container
+# `app` & `worker` dirakit di sini menggunakan service-name DNS internal compose
+# (`mariadb`, `redis`) — Anda TIDAK perlu mengoverridenya kecuali butuh parameter
+# spesifik (mis. SSL).
 #
 # Services:
 #   - app    : Next.js standalone runtime
@@ -9,6 +19,8 @@
 #   - mariadb: primary RDBMS
 #   - redis  : cache + queue + rate limit
 #   - nginx  : reverse proxy with TLS termination + extra headers + rate limit
+#
+# Untuk produksi tanpa Docker (default), ikuti README §7.1 (baremetal + systemd).
 
 services:
   app:

@@ -76,7 +76,7 @@ serta panel administrasi yang granular dengan model peran (RBAC) yang lengkap.
 4. [Stack Teknologi](#4-stack-teknologi)
 5. [Persyaratan Server](#5-persyaratan-server)
 6. [Instalasi (Pengembangan)](#6-instalasi-pengembangan)
-7. [Instalasi Produksi (Docker)](#7-instalasi-produksi-docker)
+7. [Instalasi Produksi (Baremetal &amp; Docker)](#7-instalasi-produksi-baremetal--docker)
 8. [Konfigurasi `.env`](#8-konfigurasi-env)
 9. [Migrasi & Seeder Database](#9-migrasi--seeder-database)
 10. [Skema Database (ERD Ringkas)](#10-skema-database-erd-ringkas)
@@ -384,14 +384,14 @@ Semua versi mengacu pada `package.json` di repo ini.
 
 ### 4.4 Infrastruktur (di luar npm)
 
-| Komponen       | Versi             | Catatan                                                                 |
-| -------------- | ----------------- | ----------------------------------------------------------------------- |
-| Node.js        | ≥ 20.10 (rec. 22) | Runtime aplikasi & worker                                               |
-| MariaDB        | 11.4              | Database utama (port 3307 di docker-compose untuk hindari bentrok host) |
-| Redis          | 7                 | Cache + queue + rate-limit (port 6380)                                  |
-| Nginx          | 1.27              | Reverse proxy + TLS termination + rate-limit zone                       |
-| Docker         | ≥ 24              | Build multi-stage; runtime via docker-compose                           |
-| docker-compose | v2 plugin         | Orkestrasi local & deploy dasar                                         |
+| Komponen       | Versi             | Catatan                                                                      |
+| -------------- | ----------------- | ---------------------------------------------------------------------------- |
+| Node.js        | ≥ 20.10 (rec. 22) | Runtime aplikasi & worker; mode utama = baremetal/monolith                   |
+| MariaDB        | 11.4              | Database utama (port 3306 baik di baremetal maupun docker-compose)           |
+| Redis          | 7                 | Cache + queue + rate-limit (port 6379)                                       |
+| Nginx          | 1.24+             | Reverse proxy + TLS termination + rate-limit zone (opsional di pengembangan) |
+| Docker         | ≥ 24              | **Opsional**, hanya untuk jalur Docker Compose (§7.2)                        |
+| docker-compose | v2 plugin         | **Opsional**, hanya untuk jalur Docker Compose (§7.2)                        |
 
 ### 4.5 GitHub Actions / CI
 
@@ -441,58 +441,321 @@ Semua versi mengacu pada `package.json` di repo ini.
 
 ## 6. Instalasi (Pengembangan)
 
+SIAKAD dijalankan sebagai **monolith baremetal** — semua komponen (Node, MariaDB,
+Redis) berjalan langsung di OS host tanpa Docker. Jalur Docker Compose dijelaskan
+terpisah di §7.2.
+
+### 6.1 Prasyarat
+
+| Komponen | Versi minimum     | Cara cek                                    |
+| -------- | ----------------- | ------------------------------------------- |
+| Node.js  | 20.10 (rek. 22.x) | `node -v`                                   |
+| npm      | 10.x              | `npm -v`                                    |
+| MariaDB  | 11.x              | `mariadbd --version` atau `mysql --version` |
+| Redis    | 7.x               | `redis-server --version`                    |
+| git      | 2.40+             | `git --version`                             |
+
+> **Tips Node**: pasang via [Volta](https://volta.sh) (`volta install node@22`) atau
+> [nvm](https://github.com/nvm-sh/nvm) (`nvm install 22 && nvm use 22`). Hindari
+> Node bawaan distro yang sering tertinggal.
+
+### 6.2 Instal MariaDB &amp; Redis langsung di host
+
+<details><summary><strong>Ubuntu / Debian</strong> (apt)</summary>
+
+```bash
+# MariaDB 11
+sudo apt-get update
+sudo apt-get install -y mariadb-server mariadb-client
+sudo systemctl enable --now mariadb
+sudo mariadb-secure-installation    # set root password, harden defaults
+
+# Redis 7
+sudo apt-get install -y redis-server
+sudo systemctl enable --now redis-server
+```
+
+</details>
+
+<details><summary><strong>RHEL / Rocky / AlmaLinux</strong> (dnf)</summary>
+
+```bash
+sudo dnf install -y mariadb-server redis
+sudo systemctl enable --now mariadb redis
+sudo mariadb-secure-installation
+```
+
+</details>
+
+<details><summary><strong>macOS</strong> (Homebrew)</summary>
+
+```bash
+brew install mariadb redis
+brew services start mariadb
+brew services start redis
+```
+
+</details>
+
+<details><summary><strong>Windows</strong> (winget / installer)</summary>
+
+```powershell
+winget install MariaDB.Server
+winget install Redis.Redis        # atau pakai Memurai sebagai pengganti Redis di Windows
+```
+
+Daftarkan keduanya sebagai service (MariaDB installer menyertakan opsi
+"Install as service"; Memurai langsung jadi service Windows).
+
+</details>
+
+### 6.3 Buat database &amp; user aplikasi
+
+Jalankan satu kali, sesuaikan password (samakan dengan `DATABASE_URL` di `.env`):
+
+```bash
+sudo mariadb -u root <<'SQL'
+CREATE DATABASE IF NOT EXISTS siakad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'siakad'@'localhost' IDENTIFIED BY 'siakad';
+GRANT ALL PRIVILEGES ON siakad.* TO 'siakad'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+```
+
+Smoke test koneksi:
+
+```bash
+mysql -u siakad -psiakad -h 127.0.0.1 siakad -e "SELECT 1;"
+redis-cli ping       # → PONG
+```
+
+> Tersedia helper opsional: `bash scripts/setup-baremetal.sh` — script ini hanya
+> wrapper untuk SQL di atas + `npm ci` + `prisma migrate deploy` + `db:seed-demo`.
+
+### 6.4 Bootstrap aplikasi
+
 ```bash
 # 1. Clone
 git clone https://github.com/termakaniklan/siakad.git
 cd siakad
 
-# 2. Install Node.js 22.x (via Volta / nvm) lalu:
+# 2. Pasang dependency aplikasi
 npm ci
 
-# 3. Salin .env contoh
+# 3. Salin .env contoh, lalu sesuaikan DATABASE_URL / secret di editor
 cp .env.example .env
+$EDITOR .env        # set AUTH_*_SECRET dengan: openssl rand -base64 48
 
-# 4. Jalankan MariaDB & Redis (paling mudah lewat Docker)
-docker run -d --name siakad-db   -e MARIADB_ROOT_PASSWORD=rootpw \
-  -e MARIADB_DATABASE=siakad -e MARIADB_USER=siakad -e MARIADB_PASSWORD=siakad \
-  -p 3306:3306 mariadb:11
-docker run -d --name siakad-redis -p 6379:6379 redis:7-alpine
-
-# 5. Generate Prisma client + migrasi awal
+# 4. Generate Prisma client + apply migrasi
 npm run prisma:generate
-npm run prisma:migrate -- --name init
+npm run prisma:deploy        # = prisma migrate deploy (idempotent)
 
-# 6. Seed data awal (super admin, role/permission, sample school, wilayah sample)
+# 5. Seed data awal (RBAC + akun super admin)
 npm run db:seed
+# ATAU langsung dengan dummy demo (~120 siswa / 18 guru / 120 ortu / 6 kelas / 5 ujian)
+npm run db:seed-demo
 
-# 7. Jalankan dev server
-npm run dev    # → http://localhost:3000
+# 6. Jalankan dev server
+npm run dev          # → http://localhost:3000
 
-# 8. (Opsional) Worker BullMQ di terminal terpisah
+# 7. (Opsional) Worker BullMQ di terminal terpisah
 npm run queue:worker
 ```
 
-**Akun super admin default** (dari seeder): `superadmin / SuperAdmin123!`
-**Wajib diganti pada login pertama (paksa via flag `mustChangePassword`)**.
+**Akun super admin default** (dari seeder): `superadmin / ChangeMe!2026`
+**Wajib diganti pada login pertama** (paksa via flag `mustChangePassword`).
+Akun demo lain dari `db:seed-demo`: `siswa001 / Siswa!2026`,
+`guru01 / Guru!2026`, `ortu001 / OrangTua!2026`.
 
-## 7. Instalasi Produksi (Docker)
+## 7. Instalasi Produksi (Baremetal &amp; Docker)
+
+Pilih salah satu — keduanya didukung. **Mode default = baremetal/monolith**;
+Docker Compose disediakan sebagai alternatif praktis.
+
+### 7.1 Produksi Baremetal / Monolith (rekomendasi)
+
+Cocok bila Anda punya 1 server (VPS / bare-metal / VM) dan ingin menghindari
+overhead Docker. Asumsi Ubuntu 22.04 LTS / Debian 12.
+
+#### Langkah singkat
 
 ```bash
-# Build + jalankan stack lengkap (app, worker, mariadb, redis, nginx)
+# A. Pasang prasyarat OS (lihat §6.2 untuk distro lain)
+sudo apt-get update
+sudo apt-get install -y mariadb-server mariadb-client redis-server nginx git curl
+sudo systemctl enable --now mariadb redis-server nginx
+sudo mariadb-secure-installation
+
+# Node 22 via Nodesource
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# B. Buat user OS terpisah untuk menjalankan aplikasi (best practice)
+sudo useradd --system --create-home --shell /bin/bash siakad
+sudo -iu siakad
+
+# C. Clone & build (sebagai user siakad)
+git clone https://github.com/termakaniklan/siakad.git ~/app
+cd ~/app
 cp .env.example .env
-# Edit .env: ganti SEMUA secret, set APP_URL, DATABASE_URL, REDIS_URL, MAIL_*
+$EDITOR .env        # lihat §8 — wajib set AUTH_*_SECRET, CAPTCHA_HMAC_SECRET, MAIL_*
+npm ci
+npm run prisma:generate
+npm run build
 
-docker compose build
-docker compose up -d
+# D. Provisi database (sebagai root MariaDB di terminal terpisah)
+sudo mariadb -u root <<'SQL'
+CREATE DATABASE siakad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'siakad'@'localhost' IDENTIFIED BY 'GANTI_PASSWORD_KUAT';
+GRANT ALL PRIVILEGES ON siakad.* TO 'siakad'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+# (Jangan lupa sinkronkan password ini dengan DATABASE_URL di /home/siakad/app/.env)
 
-# Migrasi pertama kali
-docker compose exec app npx prisma migrate deploy
-docker compose exec app npx tsx prisma/seed.ts
-
-# Buka https://your-domain (Nginx menerminasi TLS — sediakan cert di deploy/nginx/certs)
+# E. Apply migrasi + seed awal
+cd ~/app
+npm run prisma:deploy
+npm run db:seed
 ```
 
-Layanan yang berjalan:
+#### Menjalankan sebagai service systemd
+
+Buat unit file `/etc/systemd/system/siakad.service`:
+
+```ini
+[Unit]
+Description=SIAKAD PWA (Next.js standalone)
+After=network.target mariadb.service redis-server.service
+
+[Service]
+Type=simple
+User=siakad
+Group=siakad
+WorkingDirectory=/home/siakad/app
+EnvironmentFile=/home/siakad/app/.env
+ExecStart=/usr/bin/node /home/siakad/app/.next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/siakad/app/storage /home/siakad/app/.next
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Worker BullMQ di `/etc/systemd/system/siakad-worker.service`:
+
+```ini
+[Unit]
+Description=SIAKAD background worker (BullMQ)
+After=network.target redis-server.service mariadb.service siakad.service
+
+[Service]
+Type=simple
+User=siakad
+Group=siakad
+WorkingDirectory=/home/siakad/app
+EnvironmentFile=/home/siakad/app/.env
+ExecStart=/usr/bin/npx tsx src/shared/queue/worker.ts
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Aktifkan:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now siakad siakad-worker
+sudo systemctl status siakad
+journalctl -u siakad -f       # tail log
+```
+
+> **Alternatif PM2**: bila lebih familiar, `npm i -g pm2` lalu
+> `pm2 start ".next/standalone/server.js" --name siakad` dan
+> `pm2 start "npx tsx src/shared/queue/worker.ts" --name siakad-worker`,
+> akhiri dengan `pm2 save && pm2 startup`.
+
+#### Nginx sebagai reverse proxy + TLS
+
+Salin contoh konfigurasi yang sudah disediakan di `deploy/nginx/conf.d/default.conf`
+ke `/etc/nginx/sites-available/siakad.conf`, sesuaikan `server_name` dan path
+sertifikat (mis. Let's Encrypt via `certbot --nginx`), lalu:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/siakad.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Selesai — buka `https://siakad.sekolahanda.sch.id`.
+
+### 7.2 Produksi via Docker Compose (alternatif)
+
+Cocok bila Anda **tidak mau menyentuh OS** sama sekali — semua komponen
+ter-encapsulate di container. Stack: `app` + `worker` + `mariadb` + `redis` +
+`nginx`. **Hanya `.env` yang perlu Anda ubah**, sisanya sudah otomatis.
+
+#### Prasyarat
+
+- Docker Engine ≥ 24
+- Docker Compose v2 plugin (`docker compose version`)
+
+#### Langkah
+
+```bash
+# 1. Clone & masuk repo
+git clone https://github.com/termakaniklan/siakad.git
+cd siakad
+
+# 2. Salin .env contoh & sesuaikan
+cp .env.example .env
+$EDITOR .env
+
+# 3. Build + jalankan stack lengkap (idempotent)
+docker compose up -d --build
+
+# 4. Apply migrasi DB + seed awal (jalankan satu kali setelah container hidup)
+docker compose exec app npx prisma migrate deploy
+docker compose exec app npm run db:seed     # atau: npm run db:seed-demo
+
+# 5. Buka https://your-domain
+#    Nginx (di container) menerminasi TLS — taruh cert .pem + .key di deploy/nginx/certs
+```
+
+Berhenti / restart:
+
+```bash
+docker compose stop                # stop tanpa hilangkan data
+docker compose down                # stop + hapus container (volume MariaDB/Redis tetap aman)
+docker compose logs -f app worker  # tail log gabungan
+```
+
+#### Variabel `.env` yang **wajib** Anda set untuk mode Docker Compose
+
+| Variabel              | Dipakai oleh               | Catatan                                               |
+| --------------------- | -------------------------- | ----------------------------------------------------- |
+| `APP_URL`             | `app`, `worker`            | URL publik (mis. `https://siakad.sekolahanda.sch.id`) |
+| `AUTH_SESSION_SECRET` | `app`, `worker`            | `openssl rand -base64 48`                             |
+| `AUTH_JWT_SECRET`     | `app`, `worker`            | Beda dari session secret                              |
+| `CAPTCHA_HMAC_SECRET` | `app`                      | `openssl rand -base64 32`                             |
+| `DB_NAME`             | `mariadb`, `app`, `worker` | Nama database (default: `siakad`)                     |
+| `DB_USER`             | `mariadb`, `app`, `worker` | User aplikasi (default: `siakad`)                     |
+| `DB_PASSWORD`         | `mariadb`, `app`, `worker` | **Wajib diganti dari default `siakad`**               |
+| `DB_ROOT_PASSWORD`    | `mariadb`                  | Root MariaDB; backup script juga memakai ini          |
+| `MAIL_*`              | `app`, `worker`            | SMTP untuk reset password & notifikasi                |
+
+Semua variabel lain (`DATABASE_URL`, `REDIS_URL`) **otomatis dirakit** oleh
+`docker-compose.yml` dari `DB_*` di atas + nama service internal. Anda boleh
+meng-override `DATABASE_URL` di `.env` jika butuh parameter spesifik
+(mis. `?sslmode=require`).
+
+#### Layanan yang berjalan
 
 | Service   | Port (host) | Catatan                                                 |
 | --------- | ----------- | ------------------------------------------------------- |
@@ -503,6 +766,18 @@ Layanan yang berjalan:
 | `redis`   | 6379        | Persistent volume `redis_data`                          |
 
 Lihat `docker-compose.yml`, `Dockerfile`, dan `deploy/nginx/` untuk konfigurasi rinci.
+
+#### Troubleshooting build Docker
+
+- **`Failed to load config file "/app" ... Cannot resolve environment variable: DATABASE_URL`**
+  pada langkah `RUN npx prisma generate`: sudah diperbaiki di `prisma.config.ts`
+  (membaca `process.env.DATABASE_URL ?? ''` alih-alih helper strict `env()`).
+  Pastikan Anda berada di branch `main` terbaru sebelum `docker compose build`.
+- **Healthcheck `mariadb` lama menjadi healthy**: tingkatkan `start_period` di
+  `docker-compose.yml` bila host lambat (mis. Raspberry Pi). Migrasi awal sebaiknya
+  baru dijalankan setelah `docker compose ps` menunjukkan `(healthy)`.
+- **Mengganti port host**: ubah blok `ports:` di `docker-compose.yml` (mis.
+  `"8080:80"`) lalu `docker compose up -d` ulang.
 
 ## 8. Konfigurasi `.env`
 
@@ -777,17 +1052,32 @@ mengikuti pola serupa — gunakan adapter resmi Prisma yang relevan.
 
 ## 14. Backup & Restore
 
+### Baremetal
+
 ```bash
 # Backup MariaDB (logical, terkompres + terenkripsi)
-docker compose exec mariadb mariadb-dump -u root -p"$DB_ROOT_PASSWORD" --single-transaction --routines siakad \
+mariadb-dump -u root -p"$DB_ROOT_PASSWORD" --single-transaction --routines siakad \
+  | gzip | openssl enc -aes-256-cbc -salt -pbkdf2 -out siakad-$(date +%F).sql.gz.enc
+
+# Restore
+openssl enc -d -aes-256-cbc -pbkdf2 -in siakad-2025-01-01.sql.gz.enc \
+  | gunzip | mariadb -u root -p"$DB_ROOT_PASSWORD" siakad
+
+# Backup file uploads (jika STORAGE_DRIVER=local)
+tar -czf storage-$(date +%F).tar.gz storage/
+```
+
+### Docker Compose
+
+```bash
+# Backup
+docker compose exec -T mariadb mariadb-dump -u root -p"$DB_ROOT_PASSWORD" \
+  --single-transaction --routines siakad \
   | gzip | openssl enc -aes-256-cbc -salt -pbkdf2 -out siakad-$(date +%F).sql.gz.enc
 
 # Restore
 openssl enc -d -aes-256-cbc -pbkdf2 -in siakad-2025-01-01.sql.gz.enc \
   | gunzip | docker compose exec -T mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" siakad
-
-# Backup file uploads (jika STORAGE_DRIVER=local)
-tar -czf storage-$(date +%F).tar.gz storage/
 ```
 
 Atur cron / systemd timer harian; rotasi backup minimal 30 hari, lakukan **restore
@@ -863,7 +1153,8 @@ Tab-switch terhitung saat fokus berpindah (alert OS, ekstensi popup). Atur
 
 - **Q:** Bisakah menjalankan tanpa Redis?
   **A:** Tidak disarankan — rate limit, captcha throttle, dan queue
-  bergantung pada Redis. Untuk dev, gunakan `redis:7-alpine` lewat Docker.
+  bergantung pada Redis. Pasang baremetal lewat `apt install redis-server`
+  (Debian/Ubuntu) atau `brew install redis` (macOS). Lihat §6.2.
 - **Q:** Bagaimana mendaftarkan VAPID untuk push notif?
   **A:** Generate key (`npx web-push generate-vapid-keys`), simpan ke `.env`, lalu
   daftarkan endpoint di service worker (slot tersedia).

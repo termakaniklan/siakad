@@ -25,7 +25,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client before Next compile (Prisma 7 needs DATABASE_URL only for migrate; generate works without it)
+# Generate Prisma client before Next compile.
+# `prisma.config.ts` membaca `process.env.DATABASE_URL ?? ''` agar codegen tidak
+# memerlukan koneksi DB saat image dibangun. Variabel ini tetap wajib di runtime
+# (`migrate deploy`, `db:seed`) — divalidasi oleh `src/shared/config/env.ts`.
 RUN npx prisma generate
 RUN npm run build
 
